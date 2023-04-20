@@ -135,7 +135,7 @@ class CCRequest:
             "uuid": self.__uuid
         }
         rps = requests.get(
-            API_DOMAIN + API_QUERY_STATUS.replace("{task_id}", self.__task_id), params=param)
+            API_DOMAIN + API_QUERY_STATUS.replace("{task_id}", self.__task_id), params=param, timeout=5)
         if rps.status_code == CODE_SUCCESS:
             result = rps.json()
             code = result.get("code")
@@ -161,7 +161,7 @@ class CCRequest:
             "token": self.__token,
             "pr_url": self.pull_request_url
         }
-        rps = requests.get(API_DOMAIN + API_CREATE_TASK, params=param)
+        rps = requests.get(API_DOMAIN + API_CREATE_TASK, params=param, timeout=5)
         print("rps--------------- %s" % rps)
         self.check_task_result(rps)
         print_logs("create task request success")
@@ -184,7 +184,7 @@ class CCRequest:
 
     def get_token(self):
         print_logs("start get token......")
-        rps = requests.get(API_DOMAIN + API_GET_DYNAMIC_TOKEN)
+        rps = requests.get(API_DOMAIN + API_GET_DYNAMIC_TOKEN, timeout=5)
         if CODE_SUCCESS == rps.status_code:
             result = rps.json()
             if result.get("code") != "200":
