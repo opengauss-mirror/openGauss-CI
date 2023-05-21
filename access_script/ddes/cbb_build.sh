@@ -1,17 +1,17 @@
 #!/bin/bash
-set -euxo pipefail
+set -x
 echo "giteePullRequestIid: ${giteePullRequestIid}"
 echo "giteeAfterCommitSha: ${giteeAfterCommitSha}"
 echo "giteeRef: ${giteeRef}"
 git config --global core.compression 0
 
-sync && echo 3 > /proc/sys/vm/drop_caches
+sync && echo 3 >/proc/sys/vm/drop_caches
 ipcrm -a
 
-DMS_GITEE_REPO=https://gitee.com/opengauss/DMS.git
+WORKSPACE=/usr1/gauss_jenkins/jenkins/workspace
 CBB_GITEE_REPO=https://gitee.com/opengauss/CBB.git
 third_party_binarylibs_path=${WORKSPACE}/openGauss-third_party_binarylibs
-third_party_binarylibs_package=xxxx
+giteeTargetBranch=master
 
 function down_soure_from_gitee() {
     repo=$1
@@ -60,63 +60,64 @@ function down_binarylibs() {
     elif [[ "$os_name"x = "ubuntu"x ]] && [[ "$cpu_arc"x = "x86_64"x ]]; then
         binarylibs_file=""
     elif [[ "$os_name"x = "asianux"x ]] && [[ "$cpu_arc"x = "x86_64"x ]]; then
-        binarylibs_file=$BINARYLIBS_NAME_CENTOS_X86
+        binarylibs_file=$BINARYLIBS_NAME_OPENEULER_X86
     elif [[ "$os_name"x = "asianux"x ]] && [[ "$cpu_arc"x = "aarch64"x ]]; then
         binarylibs_file=$BINARYLIBS_NAME_OPENEULER_ARM
     else
         echo "Not support this platfrom: $os_name_$cpu_arc"
         exit 1
     fi
-    if [[ $giteeTargetBranch = "master" ]] && [[ "${binarylibs_file}" = "" ]]; then
+    if [[ "$giteeTargetBranch"x = "master"x ]] && [[ "$binarylibs_file"x = ""x ]]; then
         echo "Not found binarylibs of platfrom: $os_name_$cpu_arc"
         exit 1
     fi
     echo "Build openGauss user third-party_binarylibs: ${binarylibs_file}"
 
-    # delete old 3rd
-    rm -rf ${WORKSPACE}/openGauss-third_party_binarylibs*
-    if [[ $giteeTargetBranch = "2.0.0" ]]; then
-        wget -q -P ${WORKSPACE} ${third_party_binarylibs_package} -O ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz
-    elif [[ $giteeTargetBranch = "3.0.0" ]]; then
-        echo "user 3.0.0 version 3rd binarylibs"
-        wget -q -P ${WORKSPACE} ${third_party_binarylibs_package} -O ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz
+    # 删除之前的三方库的包
+    cd ${WORKSPACE} && rm -rf openGauss-third_party_binarylibs*
+    set -e
+    if [[ "$giteeTargetBranch"x = "2.0.0"x ]]; then
+        wget https://opengauss.obs.cn-south-1.myhuaweicloud.com/2.0.0/binarylibs/${binarylibs_file}.tar.gz -O ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz
+    elif [[ "$giteeTargetBranch"x = "3.0.0"x ]]; then
+        wget https://opengauss.obs.cn-south-1.myhuaweicloud.com/3.0.0/binarylibs/${binarylibs_file}.tar.gz -O ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz
+    elif [[ "$giteeTargetBranch"x = "5.0.0"x ]]; then
+        wget https://opengauss.obs.cn-south-1.myhuaweicloud.com/5.0.0/binarylibs/${binarylibs_file}.tar.gz -O ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz
+    elif [[ "$giteeTargetBranch"x = "master"x ]]; then
+        wget https://opengauss.obs.cn-south-1.myhuaweicloud.com/latest/binarylibs/${binarylibs_file}.tar.gz -O ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz
     else
-        wget -q -P ${WORKSPACE} ${third_party_binarylibs_package} -O ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz
+        echo "ERROR: $giteeTargetBranch branch not found"
     fi
+    set +e
 
-    cd ${WORKSPACE}
+    cd ${WORKSPACE} || exit
     mkdir -p ${WORKSPACE}/openGauss-third_party_binarylibs
     tar -zxf ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz -C openGauss-third_party_binarylibs --strip-components 1
 }
 
 function compile() {
+    # 导入cmake环境变量
     export PATH=/usr/local/cmake/cmake-3.19.5-Linux-x86_64/bin:$PATH
 
     echo "Start to build CBB..."
-    cd ${WORKSPACE}/CBB/build/linux/opengauss
+    cd ${WORKSPACE}/CBB/build/linux/opengauss || exit
     sh -x build.sh -3rd ${third_party_binarylibs_path} -m Release -t cmake
 
-    echo "Start to build DMS..."
-    cd ${WORKSPACE}/DMS/build/linux/opengauss
-    sh -x build.sh -3rd ${third_party_binarylibs_path} -m Release -t cmake
-
-    if [[ $? == 0 ]]; then
-        echo "DMS build success."
+    if [[ $? = 0 ]]; then
+        echo "CBB build success."
     else
-        echo "DMS build failed."
+        echo "CBB build failed."
         exit 1
     fi
 }
 
 function down_source() {
-    down_soure_from_gitee ${DMS_GITEE_REPO} ${giteeTargetBranch} DMS
     down_soure_from_gitee ${CBB_GITEE_REPO} ${giteeTargetBranch} CBB
 }
 
 function merge_source_code() {
-    cd ${WORKSPACE}/DMS
+    cd ${WORKSPACE}/CBB
     git rev-parse --is-inside-work-tree
-    git config remote.origin.url ${DMS_GITEE_REPO}
+    git config remote.origin.url ${CBB_GITEE_REPO}
     git fetch --tags --force --progress origin ${giteeRef}:${giteeRef}
     git checkout -b ${giteeRef} ${giteeRef}
 }
