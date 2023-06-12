@@ -84,10 +84,15 @@ function download_source() {
     download_from_gitee ${cbb_repo} ${repo_branch} CBB
     download_from_gitee ${dcc_repo} ${repo_branch} DCC
     download_from_gitee ${server_repo} ${repo_branch} server_lite
-    download_from_gitee ${plugin_repo} ${repo_branch} plugins
-    download_from_gitee ${cm_restapi_repo} ${repo_branch} cm_restapi
-    download_from_gitee ${dss_repo} ${repo_branch} DSS
-    download_from_gitee ${dms_repo} ${repo_branch} DMS
+
+    if [ "$repo_branch" != "3.0.0" ]; then
+        download_from_gitee ${plugin_repo} ${repo_branch} plugins
+        download_from_gitee ${cm_restapi_repo} ${repo_branch} cm_restapi
+        download_from_gitee ${dss_repo} ${repo_branch} DSS
+        download_from_gitee ${dms_repo} ${repo_branch} DMS
+
+        prepare_plugins
+    fi
 }
 
 function prepare_plugins() {
@@ -137,12 +142,9 @@ start_time=$(date +'%F %H:%M:%S')
 
 download_source
 
-prepare_plugins
-
 prepare_tools
 
 echo "start to build opengass and package..."
-echo "sh -x package_ci_master.sh -d ${WORKSPACE} -t ${PKG_TYPE} -v ${PKG_VERSION} -b build -o ${OUT_PUT_PATH} -l ${WORKSPACE}/openGauss-third_party_binarylibs" > /home/aaa
 echo "sh -x package_ci_master.sh -d ${WORKSPACE} -t ${PKG_TYPE} -v ${PKG_VERSION} -b build -o ${OUT_PUT_PATH} -l ${WORKSPACE}/openGauss-third_party_binarylibs"
 sh package_ci_master.sh -d ${WORKSPACE} -t ${PKG_TYPE} -v ${PKG_VERSION} -b build -o ${OUT_PUT_PATH} -l ${WORKSPACE}/openGauss-third_party_binarylibs
 if [ $? -ne 0 ]; then
