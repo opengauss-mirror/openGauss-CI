@@ -10,6 +10,12 @@ set -e
 docker_name=opengauss-build-001
 docker_image_name=opengauss-docker-build:v1
 #区分master分支和5.1.0分支
+
+if [ $1 == "" ] || [ "$2" == "" ]; then
+    echo "branch and build type must be specfied !"
+    exit 1
+fi
+
 branch_type=$2
 volume_dir=/data2/opengauss/volume_${branch_type}
 tracer_dir=/data2/opengauss/tracer
@@ -85,6 +91,10 @@ function uplod_package() {
     if [ X"${branch_type}" == X"5.1.0" ]; then
         obs_upload_path=${obs_upload_path}/5.1.0
     fi
+    if [ X"${branch_type}" == X"3.0.0" ]; then
+        obs_upload_path=obs://opengauss/latest_3.0.0
+    fi
+
 
     if [ $2 = "debug" ]; then
             obs_upload_path=${obs_upload_path}/debug

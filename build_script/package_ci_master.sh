@@ -160,6 +160,9 @@ function compile_ddes_deps() {
 
 function compile_ddes()
 {
+    if [ ! -d "${workspace}/openGauss/DSS" ]; then
+        return 0
+    fi
     export GCC_PATH=${openGauss3rdbinarylibs}/buildtools/gcc7.3/
     export CC=$GCC_PATH/gcc/bin/gcc
     export CXX=$GCC_PATH/gcc/bin/g++
@@ -296,7 +299,11 @@ function compile() {
     
     # psycopg2
     cd ${pythonDriver2Path}
-    sh build.sh -bd ${serverPkgPath}/../../mppdb_temp_install -v ${VERSION}
+    if [[ "$VERSION" =~ "3.0" ]]; then
+        sh build.sh -bd ${serverPkgPath}/../../mppdb_temp_install
+    else
+        sh build.sh -bd ${serverPkgPath}/../../mppdb_temp_install -v ${VERSION}
+    fi
     cd ${pythonDriver2Path}/output
     if [ $(ls *.tar.gz | wc -l) == 0 ]; then
         log 'err' 'build python driver2 failed, skip it'
@@ -304,12 +311,15 @@ function compile() {
     fi    
 
     # CM RestAPI
-    cd ${cmRestApiPath}
-    sh build.sh
-    if [ $(ls target/cmrestapi-*-RELEASE.jar | wc -l) == 0 ]; then
-        log 'err' 'build cmRestApi failed, skip it'
-        exit 1
+    if [ -d "$cmRestApiPath"]; then
+        cd ${cmRestApiPath}
+        sh build.sh
+        if [ $(ls target/cmrestapi-*-RELEASE.jar | wc -l) == 0 ]; then
+            log 'err' 'build cmRestApi failed, skip it'
+            exit 1
+        fi
     fi
+    
 
     #CM
     cd ${CMPkgPath}
