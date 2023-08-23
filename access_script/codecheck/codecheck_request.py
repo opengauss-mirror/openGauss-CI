@@ -31,49 +31,47 @@ import os
 
 import requests
 
+# 正式环境
 STATIC_KEY = ""
-API_DOMAIN = ""
-API_GET_DYNAMIC_TOKEN = "/api/openlibing/codecheck/token/%s" % STATIC_KEY
-API_CREATE_TASK = "/api/openlibing/codecheck/task"
-API_QUERY_STATUS = "/api/openlibing/codecheck/{task_id}/status"
+API_DOMAIN = "https://majun.osinfra.cn"
+API_PREFIX = "/api/ci-backend/ci-portal/webhook/codecheck/v1"
 
-CODE_SUCCESS = 200
-QUERY_TIMER = 30
-
-STEP_Q_TOKEN = "query token:"
-STEP_C_TASK = "create task:"
-STEP_Q_STATUS = "query status:"
-
-RESULT_PASS = "pass"
-RESULT_FAILED = "no pass"
+CODE_SUCCESS = "200"
+CODE_RUNNING = "100"
+CODE_TOKEN_EXPIRATION = "401"
 
 
 def print_logs(*args):
-    tm = datetime.datetime.fromtimestamp(time.time())
-    print("%s: %s" % (tm, ",".join(args)))
+    now = datetime.datetime.fromtimestamp(time.time())
+    print("%s: %s" % (now, ",".join(args)))
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="""code check pull request parameters.""")
+    parser = argparse.ArgumentParser(description="""
+    code check pull request parameters.""")
     parser.add_argument('--pull-id', type=str, required=True, help='pull request id.')
-    parser.add_argument('--repo-url', type=str, required=True, help=' target repo url.')
+    parser.add_argument('--repo-url', type=str, required=True, help='target repo url.')
     parser.add_argument('--seed', type=str, required=True, help='seed.')
     return parser.parse_args()
 
 
-class CCRequest:
+class CcRequest:
 
     def __init__(self):
-        self.__token = ""
-        self.__task_id = ""
-        self.__uuid = ""
+        self.token = ""
+        self.task_id = ""
+        self.uuid = ""
+        # self.pull_request_url = "https://gitee.com/opengauss/openGauss-OM/pulls/201"
         self.pull_request_url = ""
         self.pr_id = ""
         self.repo_name = ""
         self.cc_result_dir = ""
         self.result_file = ""
         self.state_file = ""
+        # 时间戳
         self.seed = 0
+        self.state = ""
+        self.url = ""
 
     def exit_with_msg(self, step, msg):
         print_logs(step, msg)
@@ -87,14 +85,121 @@ class CCRequest:
 
     def write_empty_value(self):
         print(self.seed)
-        self.result_file = os.path.join(os.path.abspath(self.cc_result_dir), "cc_result_" + str(self.seed))
-        self.state_file = os.path.join(os.path.abspath(self.cc_result_dir), "cc_state_" + str(self.seed))
+        self.result_file = os.path.join(os.path.abspath(self.cc_result_dir), "cc_result_" + self.seed)
+        self.state_file = os.path.join(os.path.abspath(self.cc_result_dir), "cc_state_" + self.seed)
         print(self.result_file)
         print(self.state_file)
         with open(self.result_file, "w+") as fd:
             fd.write("")
         with open(self.state_file, "w+") as fd:
             fd.write("")
+
+    def write_result_to_file(self, res):
+        print_logs("state file is", self.state_file)
+        print_logs("result ile is", self.result_file)
+        if res.get('code') == CODE_SUCCESS:
+            if res.get('state') == 'pass':
+                with open(self.state_file, 'w+') as fd:
+                    fd.write("success")
+            else:
+                with open(self.state_file, 'w+') as fd:
+                    fd.write("failed")
+            with open(self.result_file, 'w+') as fd:
+                fd.write(res.get('data', ''))
+        else:
+            with open(self.state_file, 'w+') as fd:
+                fd.write("failed")
+
+    def query_check_result(self):
+        print_logs('start query task......')
+        status_url = f'{API_DOMAIN}{API_PREFIX}/task/status'
+        print_logs('status_url:' + status_url)
+        body = {
+            "uuid": self.uuid,
+            "task_id": self.task_id,
+            "token": self.token
+        }
+        while True:
+            # 每10s查询一次
+            time.sleep(10)
+            try:
+                response = requests.post(status_url, json=body, timeout=10)
+                print_logs(f"response is {response.text}")
+                res = response.json()
+                if res.get('code') == CODE_SUCCESS:
+                    self.url = res.get('data')
+                    self.state = res.get('state')
+                    print_logs('task success')
+                    # 将结果写入文件中
+                    self.write_result_to_file(res)
+                    print_logs("write_result_to_file end")
+                    break
+                elif res.get('code') == CODE_RUNNING:
+                    print_logs('task running')
+                    continue
+                elif res.get('code') == CODE_TOKEN_EXPIRATION:
+                    print_logs('token expired')
+                    self.get_token()
+                    continue
+                else:
+                    self.exit_with_msg('task failed', res.get('msg'))
+                    self.write_result_to_file(res)
+                    break
+            except Exception as e:
+                print_logs(str(e))
+                continue
+
+    def create_task(self):
+        print_logs('start create task......')
+        try:
+            task_url = f'{API_DOMAIN}{API_PREFIX}/task'
+            print_logs(f'task_url:{task_url}')
+            body = {
+                "pr_url": self.pull_request_url,
+                "token": self.token
+            }
+            response = requests.post(task_url, json=body, timeout=10)
+            print_logs(f'create_task_result:{response.text}')
+            res = response.json()
+            if res.get('code') == CODE_SUCCESS:
+                self.uuid = res.get('uuid')
+                self.task_id = res.get('task_id')
+                print_logs('create task success')
+            else:
+                self.exit_with_msg('create task failed')
+        except Exception as e:
+            self.exit_with_msg('create task exception', e)
+
+    def get_token(self):
+        print_logs('start get token......')
+        try:
+            token_url = f'{API_DOMAIN}{API_PREFIX}/token'
+            print(f'token_url: {API_DOMAIN}{API_PREFIX}/token')
+            body = {
+                "static_token": STATIC_KEY
+            }
+            response = requests.post(token_url, json=body, timeout=10)
+            res = response.json()
+            if res.get('code') == CODE_SUCCESS:
+                self.token = res.get('data')
+                print_logs('get token success')
+            else:
+                self.exit_with_msg('get token failed')
+        except Exception as e:
+            self.exit_with_msg('get token exception', e)
+
+    def generate_pr_url(self, prid, repo, seed):
+        repo_url = repo[:-4]
+        self.pull_request_url = "%s/pulls/%s" % (repo_url, prid)
+        print("pull_request_url:" + self.pull_request_url)
+        self.pr_id = self.pull_request_url.split("/")[-1]
+        print('pr_id:' + self.pr_id)
+        self.repo_name = self.pull_request_url.split("/")[-3]
+        print('repo_name:' + self.repo_name)
+        self.cc_result_dir = ("/tmp/cc_result/%s/%s" % (self.repo_name, self.pr_id))
+        print('cc_result_dir:' + self.cc_result_dir)
+        self.seed = seed
+        print('seed:' + self.seed)
 
     def start(self):
         print_logs("################# start to run Code Check #################")
@@ -104,105 +209,9 @@ class CCRequest:
         self.write_empty_value()
         self.get_token()
         self.create_task()
-        while True:
-            result = self.query_check_result()
-            print_logs(str(result))
-            if result.get("task_end"):
-                break
-            time.sleep(QUERY_TIMER)
-        # 检查结果写入临时文件，提供给shell脚本获取
-        print(result)
-        url = result.get("url")
-
-        with open(self.result_file, "w+") as fd:
-            fd.write(url)
-
-        if result.get("state") != RESULT_FAILED:
-            with open(self.state_file, "w+") as fd:
-                fd.write("success")
-        else:
-            with open(self.state_file, "w+") as fd:
-                fd.write("failed")
-
-    def query_check_result(self):
-        returndata = {
-            "task_end": False,
-            "state": RESULT_PASS,
-            "url": ""
-        }
-        param = {
-            "token": self.__token,
-            "uuid": self.__uuid
-        }
-        rps = requests.get(
-            API_DOMAIN + API_QUERY_STATUS.replace("{task_id}", self.__task_id), params=param, timeout=5)
-        if rps.status_code == CODE_SUCCESS:
-            result = rps.json()
-            code = result.get("code")
-            if code == "100":
-                returndata["task_end"] = False
-            elif code == "200":
-                returndata["task_end"] = True
-                returndata["state"] = result.get("state")
-                returndata["url"] = result.get("data")
-            elif code == "500":
-                returndata["task_end"] = True
-                if result.get("msg").find("There is no proper set of languages") != -1:
-                    returndata["state"] = RESULT_PASS
-            else:
-                returndata["task_end"] = True
-        else:
-            self.exit_with_msg(STEP_Q_STATUS, rps.text)
-
-        return returndata
-
-    def create_task(self):
-        param = {
-            "token": self.__token,
-            "pr_url": self.pull_request_url
-        }
-        rps = requests.get(API_DOMAIN + API_CREATE_TASK, params=param, timeout=5)
-        print("rps--------------- %s" % rps)
-        self.check_task_result(rps)
-        print_logs("create task request success")
-
-    def check_task_result(self, rps):
-        if CODE_SUCCESS == rps.status_code:
-            result = rps.json()
-            print(result)
-            if result.get("code") == "200":
-                self.__task_id = result.get("task_id")
-                self.__uuid = result.get("uuid")
-            elif result.get("msg").find("There is no proper set of languages") != -1:
-                with open(self.state_file, "w+") as fd:
-                    fd.write("success")
-                sys.exit(0)
-            else:
-                self.exit_with_msg(STEP_C_TASK, result.get("msg"))
-        else:
-            self.exit_with_msg(STEP_C_TASK, rps.text)
-
-    def get_token(self):
-        print_logs("start get token......")
-        rps = requests.get(API_DOMAIN + API_GET_DYNAMIC_TOKEN, timeout=5)
-        if CODE_SUCCESS == rps.status_code:
-            result = rps.json()
-            if result.get("code") != "200":
-                self.exit_with_msg(STEP_Q_TOKEN, result.get("msg"))
-            self.__token = result.get("data")
-        else:
-            self.exit_with_msg(STEP_Q_TOKEN, rps.text)
-        print_logs("get token query success")
-
-    def generate_pr_url(self, prid, repo, seed):
-        repo_url = repo[:-4]
-        self.pull_request_url = "%s/pull/%s" % (repo_url, prid)
-        self.pr_id = self.pull_request_url.split("/")[-1]
-        self.repo_name = self.pull_request_url.split("/")[-3]
-        self.cc_result_dir = ("/tmp/cc_result/%s/%s" % (self.repo_name, self.pr_id))
-        self.seed = seed
+        self.query_check_result()
 
 
 if __name__ == '__main__':
-    req = CCRequest()
+    req = CcRequest()
     req.start()
