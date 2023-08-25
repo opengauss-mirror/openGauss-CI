@@ -10,21 +10,17 @@ set -e
 docker_name=opengauss-build-001
 docker_image_name=opengauss-docker-build:v1
 #区分master分支和5.1.0分支
-
-if [ $1 == "" ] || [ "$2" == "" ]; then
-    echo "branch and build type must be specfied !"
-    exit 1
-fi
-
 branch_type=$2
-volume_dir=/data2/opengauss/volume_${branch_type}
-tracer_dir=/data2/opengauss/tracer
+current_workspace=$(pwd)
+volume_dir=${current_workspace}/opengauss/volume_${branch_type}
+tracer_dir=${current_workspace}/opengauss/tracer
 root_dir=$(pwd)
 remote_test_host=192.168.0.245
 VERSION="5.1.0"
 os=""
 dockerfile="Dockerfile"
 obs_upload_path=obs://opengauss/latest
+build_log=${current_workspace}/opengauss/log
 
 
 function log() {
@@ -91,11 +87,9 @@ function uplod_package() {
     if [ X"${branch_type}" == X"5.1.0" ]; then
         obs_upload_path=${obs_upload_path}/5.1.0
     fi
-    if [ X"${branch_type}" == X"3.0.0" ]; then
-        obs_upload_path=obs://opengauss/latest_3.0.0
+    if [ X"${branch_type}" == X"5.0.0" ]; then
+        obs_upload_path=${obs_upload_path}/5.0.0
     fi
-
-
     if [ $2 = "debug" ]; then
             obs_upload_path=${obs_upload_path}/debug
     fi
@@ -283,7 +277,7 @@ function main()
     clean_docker_instance
     build_docker_image
 
-    containerid=`docker run --privileged=true -d -it -P -v ${volume_dir}:/usr1/build/workspace/volume -v /etc/localtime:/etc/localtime -v ${tracer_dir}:/usr1/build/workspace/tracer/ -e PKG_TYPE=${pkg_type}  --name ${docker_name} ${docker_image_name} $branch_type`
+    containerid=`docker run --privileged=true -d -it -P -v ${volume_dir}:/usr1/build/workspace/volume -v /etc/localtime:/etc/localtime -v ${tracer_dir}:/usr1/build/workspace/tracer/ -v ${build_log}:/usr1/build/workspace/log/ -e PKG_TYPE=${pkg_type}  --name ${docker_name} ${docker_image_name} $branch_type`
     docker logs -f ${containerid}
 
     echo "build opengauss finished......"
