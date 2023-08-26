@@ -3,16 +3,27 @@
 yum install -y bzip2 bzip2-devel curl libaio libaio-devel flex bison ncurses-devel glibc-devel patch dkms readline-devel \
 which git libtool-ltdl-devel autoconf libtool python3 python3-devel python openssl-devel gcc-c++ make hostname iproute dos2unix
 
+yum install libzstd -y
+
 # build type
 export WORKSPACE=/usr1/build/workspace
+#export PKG_TYPE=release   ##release/debug/memcheck
 export PKG_PRE_FIX=openGauss
 export PKG_VERSION=5.1.0
 export TARGET_OS=openEuler
 export OUT_PUT_PATH=/usr1/build/workspace/result/
 export VOLUME_PATH=/usr1/build/workspace/volume
+export LOG_PATH=/usr1/build/workspace/log
 
 #docker run传递参数
 repo_branch=$1
+
+export gcc_version=gcc10.3
+if [ $repo_branch = "5.0.0" ]; then
+    export PKG_VERSION=5.0.1
+    export gcc_version=gcc7.3
+fi
+
 # source and branch
 server_repo=https://gitee.com/opengauss/openGauss-server.git
 server_branch=master
@@ -84,22 +95,22 @@ function download_source() {
     download_from_gitee ${cbb_repo} ${repo_branch} CBB
     download_from_gitee ${dcc_repo} ${repo_branch} DCC
     download_from_gitee ${server_repo} ${repo_branch} server_lite
-
-    if [ "$repo_branch" != "3.0.0" ]; then
-        download_from_gitee ${plugin_repo} ${repo_branch} plugins
-        download_from_gitee ${cm_restapi_repo} ${repo_branch} cm_restapi
-        download_from_gitee ${dss_repo} ${repo_branch} DSS
-        download_from_gitee ${dms_repo} ${repo_branch} DMS
-
-        prepare_plugins
-    fi
+    download_from_gitee ${plugin_repo} ${repo_branch} plugins
+    download_from_gitee ${cm_restapi_repo} ${repo_branch} cm_restapi
+    download_from_gitee ${dss_repo} ${repo_branch} DSS
+    download_from_gitee ${dms_repo} ${repo_branch} DMS
 }
 
 function prepare_plugins() {
     echo "prepare plugins"
-    mv ${opengauss_source}/plugins/contrib/dolphin ${opengauss_source}/server/contrib/
+    cp -r ${opengauss_source}/plugins/contrib/dolphin ${opengauss_source}/server/contrib/
+    cp -r ${opengauss_source}/plugins/contrib/assessment ${opengauss_source}/server/contrib/
     cd ${opengauss_source}/server/contrib/dolphin
     make write_git_commit git_repo_path=${opengauss_source}/plugins -k
+    mv ${opengauss_source}/plugins/contrib/dolphin ${opengauss_source}/server_lite/contrib/
+    cd ${opengauss_source}/server_lite/contrib/dolphin
+    make write_git_commit git_repo_path=${opengauss_source}/plugins -k
+
 }
 
 function prepare_tools() {
@@ -119,7 +130,7 @@ function prepare_tools() {
 
     # import gcc env
     export os_platform=${os_plat}
-    export GCC_PATH=${WORKSPACE}/openGauss-third_party_binarylibs/buildtools/gcc7.3/
+    export GCC_PATH=${WORKSPACE}/openGauss-third_party_binarylibs/buildtools/$gcc_version/
     export CC=$GCC_PATH/gcc/bin/gcc
     export CXX=$GCC_PATH/gcc/bin/g++
     export LD_LIBRARY_PATH=$GCC_PATH/gcc/lib64:$GCC_PATH/isl/lib:$GCC_PATH/mpc/lib/:$GCC_PATH/mpfr/lib/:$GCC_PATH/gmp/lib/:$LD_LIBRARY_PATH
@@ -141,6 +152,8 @@ echo "build opengauss entry"
 start_time=$(date +'%F %H:%M:%S')
 
 download_source
+
+prepare_plugins
 
 prepare_tools
 
