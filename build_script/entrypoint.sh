@@ -4,6 +4,7 @@ yum install -y bzip2 bzip2-devel curl libaio libaio-devel flex bison ncurses-dev
 which git libtool-ltdl-devel autoconf libtool python3 python3-devel python openssl-devel gcc-c++ make hostname iproute dos2unix
 
 yum install libzstd -y
+yum install xerces-c xerces-c-devel -y
 
 # build type
 export WORKSPACE=/usr1/build/workspace
@@ -103,6 +104,7 @@ function download_source() {
 
 function prepare_plugins() {
     echo "prepare plugins"
+    cp -r ${opengauss_source}/plugins/contrib/spq_plugin ${opengauss_source}/server/contrib/
     cp -r ${opengauss_source}/plugins/contrib/dolphin ${opengauss_source}/server/contrib/
     cp -r ${opengauss_source}/plugins/contrib/assessment ${opengauss_source}/server/contrib/
     cd ${opengauss_source}/server/contrib/dolphin
