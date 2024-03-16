@@ -98,7 +98,7 @@ class CcRequest:
         print_logs("state file is", self.state_file)
         print_logs("result ile is", self.result_file)
         if res.get('code') == CODE_SUCCESS:
-            if res.get('state') == 'pass':
+            if res.get('msg') == 'success':
                 with open(self.state_file, 'w+') as fd:
                     fd.write("success")
             else:
@@ -128,7 +128,7 @@ class CcRequest:
                 res = response.json()
                 if res.get('code') == CODE_SUCCESS:
                     self.url = res.get('data')
-                    self.state = res.get('state')
+                    self.state = res.get('msg')
                     print_logs('task success')
                     # 将结果写入文件中
                     self.write_result_to_file(res)
