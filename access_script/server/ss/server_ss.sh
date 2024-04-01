@@ -1,7 +1,7 @@
 #!/bin/bash
 set -x
 echo "giteePullRequestIid: ${giteePullRequestIid}"
-echo "giteeAfterCommitSha: ${giteeAfterCommitSha}"
+echo "giteeTargetBranch: ${giteeTargetBranch}"
 echo "giteeRef: ${giteeRef}"
 git config --global core.compression 0
 
