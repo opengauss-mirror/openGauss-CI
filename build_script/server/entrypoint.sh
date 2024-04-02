@@ -107,6 +107,8 @@ function prepare_plugins() {
     cp -r ${opengauss_source}/plugins/contrib/spq_plugin ${opengauss_source}/server/contrib/
     cp -r ${opengauss_source}/plugins/contrib/dolphin ${opengauss_source}/server/contrib/
     cp -r ${opengauss_source}/plugins/contrib/assessment ${opengauss_source}/server/contrib/
+    cp -r ${opengauss_source}/plugins/contrib/age ${opengauss_source}/server/contrib/
+    cp -r ${opengauss_source}/plugins/contrib/datavec ${opengauss_source}/server/contrib/
     cd ${opengauss_source}/server/contrib/dolphin
     make write_git_commit git_repo_path=${opengauss_source}/plugins -k
     mv ${opengauss_source}/plugins/contrib/dolphin ${opengauss_source}/server_lite/contrib/
