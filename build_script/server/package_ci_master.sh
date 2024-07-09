@@ -148,8 +148,9 @@ function compile_ddes_deps() {
     export CXX=$GCC_PATH/gcc/bin/g++
     export LD_LIBRARY_PATH=$GCC_PATH/gcc/lib64:$GCC_PATH/isl/lib:$GCC_PATH/mpc/lib/:$GCC_PATH/mpfr/lib/:$GCC_PATH/gmp/lib/:$LD_LIBRARY_PATH
     export PATH=$GCC_PATH/gcc/bin:$PATH
-
-    if [ $1 = "debug" ]; then
+    
+    local compile_type=$1
+    if [ compile_type = "debug" ]; then
         pkg_type=Debug
     else
         pkg_type=Release
@@ -198,7 +199,8 @@ function compile_ddes() {
     export LD_LIBRARY_PATH=$GCC_PATH/gcc/lib64:$GCC_PATH/isl/lib:$GCC_PATH/mpc/lib/:$GCC_PATH/mpfr/lib/:$GCC_PATH/gmp/lib/:$LD_LIBRARY_PATH
     export PATH=$GCC_PATH/gcc/bin:$PATH
 
-    if [ $1 = "debug" ]; then
+    local compile_type=$1
+    if [ compile_type = "debug" ]; then
         pkg_type=Debug
     else
         pkg_type=Release
