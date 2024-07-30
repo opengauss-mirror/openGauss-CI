@@ -152,8 +152,10 @@ function compile_ddes_deps() {
     local compile_type=$1
     if [ compile_type = "debug" ]; then
         pkg_type=Debug
-    else
+    elif [ compile_type = "release" ]; then
         pkg_type=Release
+    else
+        pkg_type=Memcheck
     fi
 
     cd ${workspace}/openGauss/CBB
@@ -171,8 +173,13 @@ function compile_ddes_deps() {
 
     cd ${workspace}/openGauss/DCF
     export PLAT_FORM_STR=$(sh ${omPkgPath}/build/get_PlatForm_str.sh)
+    
     cd build/linux/opengauss
+    if [ ${pkg_type} = Debug || ${pkg_type} = Release ]; then
     sh -x build.sh -3rd ${openGauss3rdbinarylibs} -m ${pkg_type} -t cmake
+    else
+    echo "SKIP BUILDING DCF"
+    fi
     if [[ $? -ne 0 ]]; then
         log 'error' "dcf package failed"
         error_module="${error_module} dcf"
@@ -183,7 +190,11 @@ function compile_ddes_deps() {
     cd ${workspace}/openGauss/DCC
     export PLAT_FORM_STR=$(sh ${omPkgPath}/build/get_PlatForm_str.sh)
     cd build/linux/opengauss
+    if [ ${pkg_type} = Debug || ${pkg_type} = Release ]; then
     sh -x build.sh -3rd ${openGauss3rdbinarylibs} -m ${pkg_type} -t cmake
+    else
+    echo "SKIP BUILDING DCC"
+    fi
     if [[ $? -ne 0 ]]; then
         log 'error' "dcc package failed!"
         error_module="${error_module} dcc"
@@ -200,10 +211,13 @@ function compile_ddes() {
     export PATH=$GCC_PATH/gcc/bin:$PATH
 
     local compile_type=$1
+
     if [ compile_type = "debug" ]; then
         pkg_type=Debug
-    else
+    elif [ compile_type = "release" ]; then
         pkg_type=Release
+    else
+        pkg_type=Memcheck
     fi
 
     # DSS
