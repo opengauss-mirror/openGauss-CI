@@ -149,10 +149,9 @@ function compile_ddes_deps() {
     export LD_LIBRARY_PATH=$GCC_PATH/gcc/lib64:$GCC_PATH/isl/lib:$GCC_PATH/mpc/lib/:$GCC_PATH/mpfr/lib/:$GCC_PATH/gmp/lib/:$LD_LIBRARY_PATH
     export PATH=$GCC_PATH/gcc/bin:$PATH
     
-    local compile_type=$1
-    if [ compile_type = "debug" ]; then
+    if [ $compile_type = "debug" ]; then
         pkg_type=Debug
-    elif [ compile_type = "release" ]; then
+    elif [ $compile_type = "release" ]; then
         pkg_type=Release
     else
         pkg_type=Memcheck
@@ -210,11 +209,9 @@ function compile_ddes() {
     export LD_LIBRARY_PATH=$GCC_PATH/gcc/lib64:$GCC_PATH/isl/lib:$GCC_PATH/mpc/lib/:$GCC_PATH/mpfr/lib/:$GCC_PATH/gmp/lib/:$LD_LIBRARY_PATH
     export PATH=$GCC_PATH/gcc/bin:$PATH
 
-    local compile_type=$1
-
-    if [ compile_type = "debug" ]; then
+    if [ $compile_type = "debug" ]; then
         pkg_type=Debug
-    elif [ compile_type = "release" ]; then
+    elif [ $compile_type = "release" ]; then
         pkg_type=Release
     else
         pkg_type=Memcheck
@@ -386,7 +383,6 @@ function compile() {
 
     # server
     cd ${serverPkgPath}
-    local compile_type=$1
     local bepkit type=$2
     local compile_log=makepackage_${compile_type}.log
     local package_log=package_${compile_type}.log
