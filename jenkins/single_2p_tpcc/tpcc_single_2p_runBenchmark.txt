@@ -1,0 +1,270 @@
+#!/bin/bash
+
+function run_tpcc(){
+  cd $tpcc_path
+  
+  sh $tpcc_path/bind_bench_48c.sh
+  #sh $tpcc_path/irq_check.sh
+  
+  ipcs -m | awk '$2 ~/[0-9]+/ {print $2}' | while read s; do ipcrm -m $s; done
+  ipcs -s | awk '$2 ~/[0-9]+/ {print $2}' | while read s; do ipcrm -s $s; done
+  echo 3 > /proc/sys/vm/drop_caches
+  source /home/test600/env
+  file_5min="single_5min_${part_type}.pg"
+  file_60min="single_60min_${part_type}.pg"
+  
+  filename="$tpcc_path/single_5min_${part_type}.log"
+  rm -rf $filename
+  echo "numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh $file_5min > $filename &"
+  numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh ${file_5min} > $filename &
+  endvar=
+  count=0
+  while ([ -z "$endvar" ] && [ $count -lt 610 ]) || [ ! -f "$filename" ] || [ $count -lt 13 ]
+  do
+    count=`expr $count + 1`
+    value=`cat $filename | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}' | grep "MB"`
+    if [[ -z $value ]]; then
+      echo -n $count":"
+      cat $filename | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}'
+    fi
+
+    sleep 1
+    endvar=`cat $filename | grep "Measured tpmC (NewOrders)"`
+  done
+  echo "******************5min 预热完成*******************"
+
+  dot_log="$tpcc_path/tpmc_dot_${part_type}.log"
+  file_name_60="$tpcc_path/tpcc_60min_${part_type}.log"
+  rm -rf $file_name_60 $dot_log
+  sleep 400
+  #sleep 10
+
+  echo "numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh ${file_60min} > $file_name_60 &"
+  numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh ${file_60min} > $file_name_60 &
+  endvar=
+  count=0 #3630
+  while ([ -z "$endvar" ] && [ $count -lt 3630 ]) || [ ! -f "$file_name_60" ]
+  do
+    count=`expr $count + 1`
+    value=`cat $file_name_60 | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}' | grep "MB"`
+    if [[ -z $value ]]; then
+      echo -n $count":"
+      cur_val=`cat $file_name_60 | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}'`
+      echo $cur_val
+      echo "${count}:${cur_val}" >> $dot_log
+    fi
+
+    sleep 1
+    endvar=`cat $file_name_60 | grep "Measured tpmC (NewOrders)"`
+
+    if [[ $count -eq 1000 ]]; then
+      expect <<EOF
+      spawn ssh oguser@${server_ip} "sh ${perf_tool}/get_resource_result.sh"
+      expect {
+          "*assword:" { send "$server_root_passwd\n" }
+          "]#" { send "\n" }
+      }
+      expect eof
+EOF
+    fi
+  done
+  tail -n 5 $file_name_60
+  echo "******************1h 执行完成*******************"
+
+  tpmc=`cat $file_name_60 | grep "Measured tpmC (NewOrders)" | awk '{print $NF}'`
+  echo "tpmc(NewOrders): "$tpmc
+  echo $tpmc > $tpcc_path/tpmc_res_${part_type}.log
+
+  return $?
+}
+
+function run_tpcc_8h(){
+  cd $tpcc_path
+  
+  sh $tpcc_path/bind_bench_48c.sh
+  #sh $tpcc_path/irq_check.sh
+  
+  ipcs -m | awk '$2 ~/[0-9]+/ {print $2}' | while read s; do ipcrm -m $s; done
+  ipcs -s | awk '$2 ~/[0-9]+/ {print $2}' | while read s; do ipcrm -s $s; done
+  echo 3 > /proc/sys/vm/drop_caches
+  
+  file_5min="single_5min_${part_type}.pg"
+  file_8h="single_8h_${part_type}.pg"
+  
+  filename="$tpcc_path/single_5min_${part_type}.log"
+  rm -rf $filename
+  echo "numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh $file_5min > $filename &"
+  numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh ${file_5min} > $filename &
+  endvar=
+  count=0
+  while ([ -z "$endvar" ] && [ $count -lt 610 ]) || [ ! -f "$filename" ] || [ $count -lt 13 ]
+  do
+    count=`expr $count + 1`
+    value=`cat $filename | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}' | grep "MB"`
+    if [[ -z $value ]]; then
+      echo -n $count":"
+      cat $filename | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}'
+    fi
+
+    sleep 1
+    endvar=`cat $filename | grep "Measured tpmC (NewOrders)"`
+  done
+  echo "******************5min 预热完成*******************"
+
+  dot_log="$tpcc_path/tpmc_dot_${part_type}.log"
+  file_name_8h="$tpcc_path/tpcc_8h_${part_type}.log"
+  rm -rf $file_name_8h $dot_log
+  sleep 400
+  #sleep 10
+
+  echo "numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh ${file_8h} > $file_name_8h &"
+  numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh ${file_8h} > $file_name_8h &
+  endvar=
+  count=0 #3630
+  while ([ -z "$endvar" ] && [ $count -lt 28830 ]) || [ ! -f "$file_name_8h" ]
+  do
+    count=`expr $count + 1`
+    value=`cat $file_name_8h | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}' | grep "MB"`
+    if [[ -z $value ]]; then
+      echo -n $count":"
+      cur_val=`cat $file_name_8h | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}'`
+      echo $cur_val
+      echo "${count}:${cur_val}" >> $dot_log
+    fi
+
+    sleep 1
+    endvar=`cat $file_name_8h | grep "Measured tpmC (NewOrders)"`
+
+    if [[ $count -eq 1000 ]]; then
+      expect <<EOF
+      spawn ssh oguser@${server_ip} "sh ${perf_tool}/get_resource_result.sh"
+      expect {
+          "*assword:" { send "$server_root_passwd\n" }
+          "]#" { send "\n" }
+      }
+      expect eof
+EOF
+    fi
+  done
+  tail -n 5 $file_name_8h
+  echo "******************8h 执行完成*******************"
+
+  tpmc=`cat $file_name_8h | grep "Measured tpmC (NewOrders)" | awk '{print $NF}'`
+  echo "tpmc(NewOrders): "$tpmc
+  echo $tpmc > $tpcc_path/tpmc_res_${part_type}.log
+
+  return $?
+}
+
+function run_tpcc_12h(){
+  cd $tpcc_path
+  
+  sh $tpcc_path/bind_bench_48c.sh
+  #sh $tpcc_path/irq_check.sh
+  
+  ipcs -m | awk '$2 ~/[0-9]+/ {print $2}' | while read s; do ipcrm -m $s; done
+  ipcs -s | awk '$2 ~/[0-9]+/ {print $2}' | while read s; do ipcrm -s $s; done
+  echo 3 > /proc/sys/vm/drop_caches
+  
+  file_5min="single_5min_${part_type}.pg"
+  file_12h="single_12h_${part_type}.pg"
+  
+  filename="$tpcc_path/single_5min_${part_type}.log"
+  rm -rf $filename
+  echo "numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh $file_5min > $filename &"
+  numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh ${file_5min} > $filename &
+  endvar=
+  count=0
+  while ([ -z "$endvar" ] && [ $count -lt 610 ]) || [ ! -f "$filename" ] || [ $count -lt 13 ]
+  do
+    count=`expr $count + 1`
+    value=`cat $filename | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}' | grep "MB"`
+    if [[ -z $value ]]; then
+      echo -n $count":"
+      cat $filename | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}'
+    fi
+
+    sleep 1
+    endvar=`cat $filename | grep "Measured tpmC (NewOrders)"`
+  done
+  echo "******************5min 预热完成*******************"
+
+  dot_log="$tpcc_path/tpmc_dot_${part_type}.log"
+  file_name_12h="$tpcc_path/tpcc_12h_${part_type}.log"
+  rm -rf $file_name_12h $dot_log
+  sleep 400
+  #sleep 10
+
+  echo "numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh ${file_12h} > $file_name_12h &"
+  numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh ${file_12h} > $file_name_12h &
+  endvar=
+  count=0 #3630
+  while ([ -z "$endvar" ] && [ $count -lt 43230 ]) || [ ! -f "$file_name_12h" ]
+  do
+    count=`expr $count + 1`
+    value=`cat $file_name_12h | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}' | grep "MB"`
+    if [[ -z $value ]]; then
+      echo -n $count":"
+      cur_val=`cat $file_name_12h | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}'`
+      echo $cur_val
+      echo "${count}:${cur_val}" >> $dot_log
+    fi
+
+    sleep 1
+    endvar=`cat $file_name_12h | grep "Measured tpmC (NewOrders)"`
+
+    if [[ $count -eq 1000 ]]; then
+      expect <<EOF
+      spawn ssh oguser@${server_ip} "sh ${perf_tool}/get_resource_result.sh"
+      expect {
+          "*assword:" { send "$server_root_passwd\n" }
+          "]#" { send "\n" }
+      }
+      expect eof
+EOF
+    fi
+  done
+  tail -n 5 $file_name_12h
+  echo "******************12h 执行完成*******************"
+
+  tpmc=`cat $file_name_12h | grep "Measured tpmC (NewOrders)" | awk '{print $NF}'`
+  echo "tpmc(NewOrders): "$tpmc
+  echo $tpmc > $tpcc_path/tpmc_res_${part_type}.log
+
+  return $?
+}
+
+function main(){
+  #run_tpcc_8h
+  #run_tpcc_12h
+  run_tpcc
+  if [ $? -ne 0 ]
+  then
+    echo "benchmarksql异常！"
+    echo "磁盘使用情况："
+    df -h
+    exit 1
+  fi
+  
+  expect <<EOF
+  set timeout 300
+  spawn scp -r $tpcc_path/tpmc_res_${part_type}.log oguser@20.20.20.56:/usr1/everyday_performance_data/2p_single_${part_type}/tpmc_res.log
+  expect {
+      "*yes/no*" { send "yes\n"; exp_continue }
+      "*assword:" { send "$server_root_passwd\n" }
+      "]#" { send "\n" }
+  }
+  expect eof
+  spawn scp -r $dot_log oguser@20.20.20.56:/usr1/everyday_performance_data/2p_single_${part_type}/tpmc_dot.log
+  expect {
+      "*yes/no*" { send "yes\n"; exp_continue }
+      "*assword:" { send "$server_root_passwd\n" }
+      "]#" { send "\n" }
+  }
+  expect eof
+EOF
+  
+  exit 0
+}
+
+main $@

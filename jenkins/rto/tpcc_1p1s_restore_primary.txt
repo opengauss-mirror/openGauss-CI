@@ -1,0 +1,167 @@
+#!/bin/bash
+
+dn_path_bak=${dn_path}_back
+DATE=$(date "+%m%d")
+PORT=${perf_port_prefix}${DATE}
+
+function stop_node(){
+  su - $own_usrname <<EOF
+  source /home/$own_usrname/env
+  #gsql -d postgres -p $PORT -c 'checkpoint;'
+  gs_ctl stop -D $dn_path
+  sleep 5
+
+  ps -ef | grep gaussdb | grep $own_usrname | grep $dn_path | grep -v grep
+  ret=$?
+  if [ $ret = "0" ];then
+    cnt=1
+    while [ $ret = 0 ] && [ $cnt -le 3 ]; do
+      sleep 10
+      ps -ef | grep gaussdb | grep $own_usrname | grep $dn_path | grep -v grep
+      ret=$?
+      ps -ef | grep gaussdb | grep $own_usrname | grep $dn_path | grep -v grep | awk '{print "kill -9", $2}' | bash
+      cnt=$((cnt+1))
+    done
+
+    if [ $ret = "0" ];then
+      echo "kill gaussdb failed!"
+      exit 1
+    fi
+  fi
+EOF
+}
+
+function data_restore(){
+  echo "dn_path_bak is :"$dn_path_bak
+  rm -rf $dn_path $xlog_path/* $ts2_path/* $ts3_path/*
+  echo "cp -r $dn_path_bak $dn_path"
+  date
+  cp -r $dn_path_bak $dn_path
+  date
+  chown -R $own_usrname:$own_usrname $dn_path
+  return $?
+}
+
+function data_dump(){
+  echo "dump dn start"
+  echo "*************mv $dn_path/pg_xlog $xlog_path**************"
+  date
+  mv $dn_path/pg_xlog $xlog_path
+  date
+
+  echo "*************mv $dn_path/pg_location/tablespace2 $ts2_path**************"
+  date
+  mv $dn_path/pg_location/tablespace2 $ts2_path
+  date
+
+  echo "*************mv $dn_path/pg_location/tablespace3 $ts3_path**************"
+  date
+  mv $dn_path/pg_location/tablespace3 $ts3_path
+  date
+  
+  chown -R $own_usrname:$own_usrname $dn_path
+  chown -R $own_usrname:$own_usrname $xlog_path
+  chown -R $own_usrname:$own_usrname $ts2_path
+  chown -R $own_usrname:$own_usrname $ts3_path
+  
+  
+  ln -svf $xlog_path/pg_xlog $dn_path
+  ln -svf $ts2_path/tablespace2 $dn_path/pg_location
+  ln -svf $ts3_path/tablespace3 $dn_path/pg_location
+
+  return $?
+}
+
+function fn_startDN(){
+  echo '*************环境准备**************'
+  rm -rf /tmp/.s.PGSQL.*
+  sh $perf_tool/perf_pre.sh
+  #清理缓存
+  ipcs -m | awk '$2 ~/[0-9]+/ {print $2}' | while read s; do ipcrm -m $s; done
+  echo 3 > /proc/sys/vm/drop_caches
+
+  localport=`expr $PORT + 1`
+  localheartbeatport2=`expr $PORT + 3`
+  localservice2=`expr $PORT + 2`
+  echo "localport is : ${localport}"
+  echo "localheartbeatport2 is : ${localheartbeatport2}"
+  echo "localservice2 is : ${localservice2}"
+  replconninfo2="'localhost=$primary_ip localport=$localport localheartbeatport=$localheartbeatport2 localservice=$localservice2 remotehost=$standby2_ip remoteport=$localport remoteheartbeatport=$localheartbeatport2 remoteservice=$localservice2'"
+  echo "replconninfo2 = $replconninfo2"  
+
+  echo '*************启动数据库**************'
+  su - $own_usrname <<EOF
+  cat << __END__ >> $dn_path/postgresql.conf
+#replconninfo2 = $replconninfo2
+recovery_parse_workers = 2
+recovery_redo_workers = 8
+track_activities = on
+enable_instr_track_wait = on
+recovery_time_target = 10
+most_available_sync = on
+
+recovery_parse_workers = 4
+recovery_redo_workers = 4
+hot_standby = off
+recovery_max_workers = 4
+
+#log_min_messages = LOG
+
+__END__
+
+  cat << __END2__ >> $dn_path/pg_hba.conf
+host $tpcc_db $tpcc_usr $standby2_ip/32 sha256
+host all all 20.20.20.67/32 sha256
+__END2__
+
+  source /home/$own_usrname/env
+  echo "numactl -C $server_bind gs_ctl start -D $dn_path -M primary &"
+  numactl -C $server_bind gs_ctl start -D $dn_path -M primary &
+  sleep 60
+
+  echo '获取版本号'
+  version=`gsql -d postgres -p $PORT -c 'select version();'`
+  echo "$version"
+EOF
+  return $?
+}
+
+function main(){
+  stop_node
+  if [ $? -ne 0 ]
+  then
+    echo "数据库停止失败"
+    return -1
+  else
+    echo "数据库停止成功"
+  fi
+
+  data_restore
+  if [ $? -ne 0 ]
+  then
+    echo "data恢复失败"
+    exit 1
+  else
+    echo "data恢复成功"
+  fi
+
+  data_dump
+  if [ $? -ne 0 ]
+  then
+    echo "data分盘失败"
+    exit 1
+  else
+    echo "data分盘成功"
+  fi
+  
+  fn_startDN
+  if [ $? -ne 0 ]
+  then
+    echo "numa启动数据库失败"
+    exit 1
+  else
+    echo "numa启动数据库成功"
+  fi
+}
+
+main $@

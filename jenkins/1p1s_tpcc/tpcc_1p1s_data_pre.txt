@@ -1,0 +1,11 @@
+#!/bin/bash
+
+DATE=$(date "+%m%d")
+DATE_YESTERDAY=$(date -d yesterday "+%m%d")
+PORT=${perf_port_prefix}${DATE}
+echo '*************创建tpcc使用的用户与数据库**************'
+  su - $own_usrname <<EOF
+  source /home/$own_usrname/env
+  echo "gsql -d postgres -p $PORT -c 'create user $tpcc_usr identified by $tpcc_usrpasswd;alter user $tpcc_usr sysadmin;create database $tpcc_db with lc_collate = 'C' ENCODING = 'SQLASCII' LC_CTYPE = 'C';'"
+  gsql -d postgres -p $PORT -c "create user $tpcc_usr identified by '$tpcc_usrpasswd';alter user $tpcc_usr sysadmin;create database $tpcc_db with lc_collate = 'C' ENCODING = 'SQLASCII' LC_CTYPE = 'C';"
+EOF

@@ -1,0 +1,177 @@
+#!/bin/bash
+
+dn_path_bak=${dn_path}_back
+DATE=$(date "+%m%d")
+PORT=${perf_port_prefix}${DATE}
+
+function data_backup(){
+  echo "dn_path_bak is :"$dn_path_bak
+  rm -rf $dn_path_bak
+  echo "cp -r $dn_path $dn_path_bak"
+  date
+  cp -r $dn_path $dn_path_bak
+  date
+  chown -R $own_usrname:$own_usrname $dn_path_bak
+  return $?
+}
+
+function data_dump(){
+  echo "dump dn start"
+  echo "*************mv $dn_path/pg_xlog $xlog_path**************"
+  date
+  mv $dn_path/pg_xlog $xlog_path
+  date
+  #sleep 300
+  ln -svf $xlog_path/pg_xlog $dn_path
+
+
+  echo "*************mv $dn_path/pg_location/tablespace2 $ts2_path**************"
+  date
+  mv $dn_path/pg_location/tablespace2 $ts2_path
+  date
+  #sleep 100
+
+  echo "*************mv $dn_path/pg_location/tablespace3 $ts3_path**************"
+  date
+  mv $dn_path/pg_location/tablespace3 $ts3_path
+  date
+  #sleep 200
+  
+  ln -svf $ts2_path/tablespace2 $dn_path/pg_location
+  ln -svf $ts3_path/tablespace3 $dn_path/pg_location
+
+  return $?
+}
+
+function data_dump_bak(){
+  echo "dump dn start"
+  echo "*************mv $dn_path/pg_xlog $xlog_path**************"
+  date
+  mv $dn_path/pg_xlog $xlog_path
+  date
+  #sleep 300
+  ln -svf $xlog_path/pg_xlog $dn_path
+
+  return $?
+}
+
+
+function fn_startDN_bak(){
+  echo '*************环境准备**************'
+  sh $perf_tool/perf_pre_standby.sh
+  
+  ifconfig enp4s0 mtu 8192
+  
+  #清理缓存
+  ipcs -m | awk '$2 ~/[0-9]+/ {print $2}' | while read s; do ipcrm -m $s; done
+  echo 3 > /proc/sys/vm/drop_caches
+
+  echo '*************启动数据库**************'
+  su - $own_usrname <<EOF
+  source /home/$own_usrname/env
+  #echo "numactl -C 1-28 gs_ctl start -D $dn_path -M standby &"
+  #numactl -C 1-28 gs_ctl start -D $dn_path -M standby &
+  echo "numactl -C 0-25 gs_ctl start -D $dn_path -M standby &"
+  numactl -C 0-25 gs_ctl start -D $dn_path -M standby &
+  
+  sleep 60
+
+
+  echo '获取版本号'
+  version=`gsql -d postgres -p $PORT -c 'select version();'`
+  echo "$version"
+  
+  echo '查询主备状态'
+  gs_ctl query -D $dn_path
+EOF
+  return $?
+}
+
+function fn_startDN(){
+  echo '*************环境准备**************'
+  sh $perf_tool/perf_pre_standby.sh
+  ifconfig enp4s0 mtu 8192
+  
+  #清理缓存
+  ipcs -m | awk '$2 ~/[0-9]+/ {print $2}' | while read s; do ipcrm -m $s; done
+  echo 3 > /proc/sys/vm/drop_caches
+  
+  echo '*************清理xlog**************'
+  if [ $own_usrname == "tpcc_1p1s_part" ]
+  then
+    rm -rf /usr2/tpcc_1p1s_nopart/*
+  else
+    rm -rf /usr2/tpcc_1p1s_part/*
+  fi
+    
+  ifconfig enp4s0 mtu 8192
+  
+
+  echo '*************启动数据库**************'
+  su - $own_usrname <<EOF
+  source /home/$own_usrname/env
+  
+  #echo "numactl -C 64-89 --preferred=2 gs_ctl start -D $dn_path -M standby &"
+  #numactl -C 64-89 --preferred=2 gs_ctl start -D $dn_path -M standby &
+  
+  echo "advance_xlog_file_num = 100000" >> $dn_path/postgresql.conf
+  echo "thread_pool_attr = '345,1,(cpubind:1-28)'" >> $dn_path/postgresql.conf
+  
+  echo "numactl -C 1-28 -p 0 gs_ctl start -D $dn_path -Z single_node -M standby &"
+  numactl -C 1-28 -p 0 gs_ctl start -D $dn_path -Z single_node -M standby &
+  
+  sleep 60
+
+  sh $perf_tool/bind_walrecvrecvw.sh $dn_path
+
+  echo '获取版本号'
+  version=`gsql -d postgres -p $PORT -c 'select version();'`
+  echo "$version"
+  
+  echo '查询主备状态'
+  gs_ctl query -D $dn_path
+EOF
+  return $?
+}
+
+function test(){
+  if [ $own_usrname == "tpcc_1p1s_nopart" ]
+  then
+    echo 1
+  else
+    echo 2
+  fi
+}
+
+function main(){
+  
+  data_backup
+  if [ $? -ne 0 ]
+  then
+    echo "data备份失败"
+    exit 1
+  else
+    echo "data备份成功"
+  fi
+
+  data_dump
+  if [ $? -ne 0 ]
+  then
+    echo "data分盘失败"
+    exit 1
+  else
+    echo "data分盘成功"
+  fi
+  
+  fn_startDN
+  if [ $? -ne 0 ]
+  then
+    echo "numa启动数据库失败"
+    exit 1
+  else
+    echo "numa启动数据库成功"
+  fi
+  
+}
+
+main $@

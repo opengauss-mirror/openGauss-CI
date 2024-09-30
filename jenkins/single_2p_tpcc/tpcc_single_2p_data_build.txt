@@ -1,0 +1,102 @@
+#!/bin/bash
+
+DATE=$(date "+%m%d")
+PORT=${perf_port_prefix}${DATE}
+
+function func_setProp(){
+  if [[ ! -d $tpcc_path ]]
+  then
+    echo "benchmarksql路径：$tpcc_path 不存在，请检查！"
+    return -1
+  fi
+
+  cd $tpcc_path
+  file_5min="single_5min_${part_type}.pg"
+  file_60min="single_60min_${part_type}.pg"
+  file_8h="single_8h_${part_type}.pg"
+  file_12h="single_12h_${part_type}.pg"
+  cp -r $tpcc_path/runDatabaseBuild.sh.${part_type} $tpcc_path/runDatabaseBuild.sh
+  #cp -r $tpcc_path/runDatabaseBuild.sh.ustore $tpcc_path/runDatabaseBuild.sh
+  rm -rf ${tpcc_path}/${file_5min}
+  rm -rf ${tpcc_path}/${file_60min}
+  cp -f $tpcc_path/za_template.pg ${tpcc_path}/${file_5min}
+  cp -f $tpcc_path/za_template.pg ${tpcc_path}/${file_60min}
+  
+  if [[ "$part_type"x == "part"x ]]
+  then
+    suffix="prepareThreshold=1\&batchMode=on\&fetchsize=10\&loggerLevel=OFF\&UTF8Decode=true\&preparedStatementCacheSizeMiB=0\&preparedStatementCacheQueries=0"
+    #suffix="prepareThreshold=1\&batchMode=on\&fetchsize=10\&loggerLevel=OFF"
+  else
+    suffix="prepareThreshold=1\&batchMode=on\&fetchsize=10\&loggerLevel=OFF\&UTF8Decode=true"
+  fi
+
+  conn_stmt="jdbc:postgresql:\/\/${server_ip}:${PORT}\/${tpcc_db}\?${suffix}"
+  replace_pwd=${tpcc_usrpasswd//\@/\\\@}
+  
+  echo "start!"
+  echo ${conn_stmt}
+  echo ${tpcc_usr}
+  echo ${replace_pwd}
+  echo ${tpcc_warehouses}
+  echo ${tpcc_terminals}
+  echo "stop!"
+
+  sed -i "s/replace_conn/${conn_stmt}/g" ${tpcc_path}/${file_5min}
+  sed -i "s/replace_user/${tpcc_usr}/g" ${tpcc_path}/${file_5min}
+  sed -i "s/replace_usrpasswd/${replace_pwd}/g" ${tpcc_path}/${file_5min}
+  sed -i "s/replace_warehouses/${tpcc_warehouses}/g" ${tpcc_path}/${file_5min}
+  sed -i "s/replace_terminals/${tpcc_terminals}/g" ${tpcc_path}/${file_5min}
+  sed -i "s/replace_runmins/5/g" ${tpcc_path}/${file_5min}
+  
+
+  sed -i "s/replace_conn/${conn_stmt}/g" ${tpcc_path}/${file_60min}
+  sed -i "s/replace_user/${tpcc_usr}/g" ${tpcc_path}/${file_60min}
+  sed -i "s/replace_usrpasswd/${replace_pwd}/g" ${tpcc_path}/${file_60min}
+  sed -i "s/replace_warehouses/${tpcc_warehouses}/g" ${tpcc_path}/${file_60min}
+  sed -i "s/replace_terminals/${tpcc_terminals}/g" ${tpcc_path}/${file_60min}
+  sed -i "s/replace_runmins/60/g" ${tpcc_path}/${file_60min}
+
+  echo "${file_60min}"
+  cat ${tpcc_path}/${file_5min}
+  echo "$file_60min"
+  cat ${tpcc_path}/${file_60min}
+  
+  cp -f ${tpcc_path}/${file_60min} ${tpcc_path}/${file_8h}
+  sed -i "s/runMins=60/runMins=480/g" ${tpcc_path}/${file_8h}
+  
+  cp -f ${tpcc_path}/${file_60min} ${tpcc_path}/${file_12h}
+  sed -i "s/runMins=60/runMins=720/g" ${tpcc_path}/${file_12h}
+  return $?
+}
+
+function run_databuild(){
+  cd $tpcc_path
+  source /home/test600/env
+  $tpcc_path/runDatabaseBuild.sh ${file_5min}
+  return $?
+}
+
+function main(){
+  func_setProp
+  if [ $? -ne 0 ]
+  then
+    echo "环境检查|配置文件准备失败"
+    return -1
+  else
+    echo "环境检查|配置文件准备成功"
+  fi
+
+  run_databuild
+  if [ $? -ne 0 ]
+  then
+    echo "databuild失败！"
+    exit 1
+  else
+    echo "databuild成功"
+  fi
+  date
+  echo "等待数据刷盘10min"
+  sleep 500
+}
+
+main $@

@@ -1,0 +1,58 @@
+#!/bin/bash
+
+dn_path_bak=${dn_path}_back
+DATE=$(date "+%m%d")
+PORT=${perf_port_prefix}${DATE}
+
+function stop_node(){
+  su - $own_usrname <<EOF
+  source /home/$own_usrname/env
+  #gsql -d postgres -p $PORT -c 'checkpoint;'
+  gs_ctl stop -D $dn_path
+  sleep 15
+
+  ps -ef | grep gaussdb | grep $own_usrname | grep $dn_path | grep -v grep | awk '{print "kill", $2}' | bash
+  ret=0
+  cnt=1
+  while [ $ret = 0 ] && [ $cnt -le 3 ]; do
+    sleep 10
+    ps -ef | grep gaussdb | grep $own_usrname | grep $dn_path | grep -v grep
+    ret=$?
+
+    ps -ef | grep gaussdb | grep $own_usrname | grep $dn_path | grep -v grep | awk '{print "kill", $2}' | bash
+    cnt=$((cnt+1))
+  done
+  cnt=1
+  while [ $ret = 0 ] && [ $cnt -le 3 ]; do
+    sleep 10
+    ps -ef | grep gaussdb | grep $own_usrname | grep $dn_path | grep -v grep
+    ret=$?
+
+    ps -ef | grep gaussdb | grep $own_usrname | grep $dn_path | grep -v grep | awk '{print "kill -9", $2}' | bash
+    cnt=$((cnt+1))
+  done
+
+  ps -ef | grep gaussdb | grep $own_usrname | grep $dn_path | grep -v grep
+  ret=$?
+  if [ "$ret" == "0" ];then
+    echo "Failed when kill gaussdb"
+    exit 1
+  fi
+  echo "advance_xlog_file_num = 100000" >> $dn_path/postgresql.conf
+  echo "thread_pool_attr = '345,1,(cpubind:1-28)'" >> $dn_path/postgresql.conf
+EOF
+}
+
+function main(){
+  stop_node
+  if [ $? -ne 0 ]
+  then
+    echo "数据库停止失败"
+    return -1
+  else
+    echo "数据库停止成功"
+  fi
+
+}
+
+main $@
