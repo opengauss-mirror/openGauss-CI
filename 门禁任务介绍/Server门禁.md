@@ -72,6 +72,11 @@ make install -sj
 3. 运行用例
 ```
 make fastcheck_single
+
+当前分为三个测试套：
+make fastcheck_single PART=A
+make fastcheck_single PART=B
+make fastcheck_single PART=C
 ```
 
 ### 代码编译测试
