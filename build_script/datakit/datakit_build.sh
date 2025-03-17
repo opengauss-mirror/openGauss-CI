@@ -67,9 +67,23 @@ function build_pkg() {
 
 function upload() {
     cd ${output_dir}/ || exit 1
-    obsutil cp Datakit-${VERSION}.tar.gz obs://opengauss/latest/tools/Datakit/
-    sha256sum -b Datakit-${VERSION}.tar.gz >Datakit-${VERSION}.tar.gz.sha256
-    obsutil cp Datakit-${VERSION}.tar.gz.sha256 obs://opengauss/latest/tools/Datakit/
+    obsutil cp Datakit-All-${VERSION}.tar.gz obs://opengauss/latest/tools/Datakit/
+    sha256sum -b Datakit-All-${VERSION}.tar.gz >Datakit-All-${VERSION}.tar.gz.sha256
+    obsutil cp Datakit-All-${VERSION}.tar.gz.sha256 obs://opengauss/latest/tools/Datakit/
+    obsutil cp Datakit-Mini-${VERSION}.tar.gz obs://opengauss/latest/tools/Datakit/
+    sha256sum -b Datakit-Mini-${VERSION}.tar.gz >Datakit-Mini-${VERSION}.tar.gz.sha256
+    obsutil cp Datakit-Mini-${VERSION}.tar.gz.sha256 obs://opengauss/latest/tools/Datakit/
+    obsutil cp ./visualtool-plugin/alert-monitor-7.0.0-RC1-repackage.jar obs://opengauss/latest/tools/Datakit/visualtool-plugin/alert-monitor-7.0.0-RC1-repackage.jar
+    obsutil cp ./visualtool-plugin/base-ops-7.0.0-RC1-repackage.jar obs://opengauss/latest/tools/Datakit/visualtool-plugin/base-ops-7.0.0-RC1-repackage.jar
+    obsutil cp ./visualtool-plugin/container-management-plugin-7.0.0-RC1-repackage.jar obs://opengauss/latest/tools/Datakit/visualtool-plugin/container-management-plugin-7.0.0-RC1-repackage.jar
+    obsutil cp ./visualtool-plugin/data-migration-7.0.0-RC1-repackage.jar obs://opengauss/latest/tools/Datakit/visualtool-plugin/data-migration-7.0.0-RC1-repackage.jar
+    obsutil cp ./visualtool-plugin/MetaTune-7.0.0-RC1-repackage.jar obs://opengauss/latest/tools/Datakit/visualtool-plugin/MetaTune-7.0.0-RC1-repackage.jar
+    obsutil cp ./visualtool-plugin/monitor-tools-7.0.0-RC1-repackage.jar obs://opengauss/latest/tools/Datakit/visualtool-plugin/monitor-tools-7.0.0-RC1-repackage.jar
+    obsutil cp ./visualtool-plugin/oauth-login-7.0.0-RC1-repackage.jar obs://opengauss/latest/tools/Datakit/visualtool-plugin/oauth-login-7.0.0-RC1-repackage.jar
+    obsutil cp ./visualtool-plugin/observability-instance-7.0.0-RC1-repackage.jar obs://opengauss/latest/tools/Datakit/visualtool-plugin/observability-instance-7.0.0-RC1-repackage.jar
+    obsutil cp ./visualtool-plugin/observability-log-search-7.0.0-RC1-repackage.jar obs://opengauss/latest/tools/Datakit/visualtool-plugin/observability-log-search-7.0.0-RC1-repackage.jar
+    obsutil cp ./visualtool-plugin/observability-sql-diagnosis-7.0.0-RC1-repackage.jar obs://opengauss/latest/tools/Datakit/visualtool-plugin/observability-sql-diagnosis-7.0.0-RC1-repackage.jar
+    obsutil cp ./visualtool-plugin/webds-plugin-7.0.0-RC1-repackage.jar obs://opengauss/latest/tools/Datakit/visualtool-plugin/webds-plugin-7.0.0-RC1-repackage.jar
 }
 
 function main() {
