@@ -37,4 +37,6 @@
   "sh.rustup.rs",
   "static.rust-lang.org",
   "repo.maven.apache.org"
+  "index.crates.io"
+  "api.gitcode.com"
 ]
