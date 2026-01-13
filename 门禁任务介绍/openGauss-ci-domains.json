@@ -46,5 +46,8 @@
   "download.docker.com",
   "yum.oracle.com",
   "repo.percona.com",
-  "content.mellanox.com"
+  "content.mellanox.com",
+  "release-assets.githubusercontent.com",
+  "raw.githubusercontent",
+  "codeload.github.com"
 ]
