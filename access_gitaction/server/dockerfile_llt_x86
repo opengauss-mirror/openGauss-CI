@@ -7,7 +7,7 @@ COPY openEuler_aarch64.repo /etc/yum.repos.d/openEuler_aarch64.repo
 COPY serverdeps/config_cmake_x86.ini .
 COPY serverdeps/config_cmake_arm.ini .
 COPY serverdeps/config.ini .
-COPY serverdeps/entrypoint_llt.sh .
+COPY entrypoint_llt.sh .
 COPY serverdeps/Private_LLT_Build.sh .
 COPY serverdeps/Private_Main.sh .
 COPY serverdeps/01.log.sh.sh .
