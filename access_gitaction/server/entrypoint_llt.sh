@@ -1,9 +1,9 @@
 #!/bin/bash
 
 
-WORKSPACE=/usr1/build/workspace
-openGaussServer_Http_Repo_Url=https://gitcode.com/opengauss/openGauss-server.git
-gitcodeTargetBranch=master
+export WORKSPACE=/usr1/build/workspace
+export openGaussServer_Http_Repo_Url=https://gitcode.com/opengauss/openGauss-server.git
+export gitcodeTargetBranch=master
 
 ################################ 这些需要根据jenkins传入。。。先验证容器跑fastcheck ################################
 # echo "gitcodePullRequestIid: ${gitcodePullRequestIid}"
@@ -18,6 +18,17 @@ if [[ "$gitcodeTargetBranch"x = "dev10"x || "$gitcodeTargetBranch"x = "glt"x  ||
     echo "skip $gitcodeTargetBranch branch gate"
     exit 0
 fi
+
+
+function prepare_deps() {
+    mkdir -p ${WORKSPACE}/dependency/cmake
+
+    if [ "$(uname -m)" = "aarch64" ]; then
+        tar -xf /cmake-3.19.5-Linux-aarch64.tar.gz -C ${WORKSPACE}/dependency/cmake/
+    else
+        tar -xf /cmake-3.19.5-Linux-x86_64.tar.gz -C ${WORKSPACE}/dependency/cmake/
+    fi
+}
 
 function download_source_from_gitcode() {
     repo=$1
@@ -140,6 +151,7 @@ function make_fastcheck_single() {
 
     chmod -R 755 /usr1
     chmod -R 755 /data/llt/PrivateBuild_tools
+    chmod -R 755 /data/config
 
     if [[ $gitcodeTargetBranch = "2.0.0" || $gitcodeTargetBranch = "3.0.0" || $gitcodeTargetBranch = "dev" ]]; then
         # 2.0.0和3.0.0,dev分支，只跑一个文件,不加参数
@@ -151,6 +163,7 @@ function make_fastcheck_single() {
 }
 
 function main() {
+    prepare_deps
     download_source
     # merge_source_code
     download_binarylibs
