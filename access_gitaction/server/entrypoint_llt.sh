@@ -25,8 +25,10 @@ function prepare_deps() {
 
     if [ "$(uname -m)" = "aarch64" ]; then
         tar -xf /cmake-3.19.5-Linux-aarch64.tar.gz -C ${WORKSPACE}/dependency/cmake/
+        mv /data/llt/PrivateBuild_tools/config_cmake_arm.ini /data/llt/PrivateBuild_tools/config_cmake.ini
     else
         tar -xf /cmake-3.19.5-Linux-x86_64.tar.gz -C ${WORKSPACE}/dependency/cmake/
+        mv /data/llt/PrivateBuild_tools/config_cmake_x86.ini /data/llt/PrivateBuild_tools/config_cmake.ini
     fi
 }
 
