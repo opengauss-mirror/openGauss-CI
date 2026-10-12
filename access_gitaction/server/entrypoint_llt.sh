@@ -1,18 +1,18 @@
 #!/bin/bash
 
 
-echo "gitcodePullRequestIid: ${gitcodePullRequestIid}"
-echo "gitcodeAfterCommitSha: ${gitcodeAfterCommitSha}"
-echo "gitcodeRef: refs/merge-requests/${gitcodePullRequestIid}/merge"
-git config --global core.compression 0
+WORKSPACE=/usr1/build/workspace
+openGaussServer_Http_Repo_Url=https://gitcode.com/opengauss/openGauss-server.git
+gitcodeTargetBranch=master
 
-sync && echo 3>/proc/sys/vm/drop_caches
-ipcrm -a
+################################ 这些需要根据jenkins传入。。。先验证容器跑fastcheck ################################
+# echo "gitcodePullRequestIid: ${gitcodePullRequestIid}"
+# echo "gitcodeAfterCommitSha: ${gitcodeAfterCommitSha}"
+# echo "gitcodeRef: refs/merge-requests/${gitcodePullRequestIid}/merge"
+# git config --global core.compression 0
 
-# 本地测试
-#gitcodeTargetBranch=3.0.0
-#WORKSPACE=/usr1/gauss_jenkins/jenkins/workspace
-#openGaussServer_Http_Repo_Url=https://gitcode.com/hengliue/openGauss-server.git
+# sync && echo 3>/proc/sys/vm/drop_caches
+# ipcrm -a
 
 if [[ "$gitcodeTargetBranch"x = "dev10"x || "$gitcodeTargetBranch"x = "glt"x  || "$gitcodeTargetBranch"x = "iud_dev"x ]]; then
     echo "skip $gitcodeTargetBranch branch gate"
@@ -58,10 +58,6 @@ function merge_source_code() {
     git config remote.origin.url ${openGaussServer_Http_Repo_Url}
     git fetch origin refs/merge-requests/${gitcodePullRequestIid}/head:refs/merge-requests/${gitcodePullRequestIid}/head
     git merge --no-verify refs/merge-requests/${gitcodePullRequestIid}/head --no-edit
-    #git fetch --tags --force --progress origin refs/merge-requests/${gitcodePullRequestIid}/merge:refs/merge-requests/${gitcodePullRequestIid}/merge
-    #git checkout -b refs/merge-requests/${gitcodePullRequestIid}/merge refs/merge-requests/${gitcodePullRequestIid}/merge
-  # git fetch origin refs/merge-requests/${gitcodePullRequestIid}/head:refs/merge-requests/${gitcodePullRequestIid}/head
-   # git merge --no-verify refs/merge-requests/${gitcodePullRequestIid}/head
 }
 
 function download_binarylibs() {
@@ -156,7 +152,7 @@ function make_fastcheck_single() {
 
 function main() {
     download_source
-    merge_source_code
+    # merge_source_code
     download_binarylibs
     make_fastcheck_single
 }
