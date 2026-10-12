@@ -10,7 +10,7 @@ COPY serverdeps/config.ini .
 COPY entrypoint_llt.sh .
 COPY serverdeps/Private_LLT_Build.sh .
 COPY serverdeps/Private_Main.sh .
-COPY serverdeps/01.log.sh.sh .
+COPY serverdeps/01.log.sh .
 COPY serverdeps/02.cleanEnv_ipcs.sh .
 COPY serverdeps/03.get_osname.sh .
 COPY serverdeps/config_gcc7.ini .
@@ -41,7 +41,7 @@ COPY Private_Main.sh /data/llt/PrivateBuild_tools/
 RUN chmod 755 /usr/local/bin/entrypoint_llt.sh
 RUN chmod 755 /usr/local/bin/loop.sh
 
-COPY 01.log.sh.sh /data/llt/PrivateBuild_tools/function/
+COPY 01.log.sh /data/llt/PrivateBuild_tools/function/
 COPY 02.cleanEnv_ipcs.sh /data/llt/PrivateBuild_tools/function/
 COPY 03.get_osname.sh /data/llt/PrivateBuild_tools/function/
 COPY config_gcc7.ini /data/config/
