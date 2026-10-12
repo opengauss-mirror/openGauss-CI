@@ -33,7 +33,7 @@ COPY omdeps/auto_postuninstall.sh /data/om/
 COPY omdeps/auto_preinstall.sh /data/om/
 COPY omdeps/auto_upgradectl.sh /data/om/
 COPY omdeps/automated-test.sh /data/om/
-COPY omdeps/acluster_1m0s_config.xml /data/om/
+COPY omdeps/cluster_1m0s_config.xml /data/om/
 COPY omdeps/pre_compile.sh /data/om/
 COPY omdeps/useradd.sh /data/om/
 RUN chmod -R 755 /data
