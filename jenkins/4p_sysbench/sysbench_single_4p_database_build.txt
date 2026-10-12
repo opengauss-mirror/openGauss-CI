@@ -1,0 +1,345 @@
+
+#!/bin/bash
+
+DATE=$(date "+%m%d")
+#PORT=${perf_port_prefix}${DATE}
+PORT=20726
+
+#pgsql_host=20.20.20.113
+pgsql_host=30.30.30.50
+table_size=1000000
+table_count=10
+threads=200
+run_sysbench_time=180
+report_interval=1
+sysbench_path=/usr3/sysbench/sysbenchsrc/bin
+
+read_only_lua_path=/usr3/sysbench/sysbenchsrc/share/sysbench/oltp_read_only.lua
+
+read_write_lua_path=/usr3/sysbench/sysbenchsrc/share/sysbench/oltp_read_write.lua
+
+insert_only_lua_path=/usr3/sysbench/sysbenchsrc/share/sysbench/oltp_insert.lua
+
+update_non_index_lua_path=/usr3/sysbench/sysbenchsrc/share/sysbench/oltp_update_non_index.lua
+
+parameters="--db-driver=pgsql --pgsql-host="${pgsql_host}" --pgsql-port="${PORT}" --pgsql-user="${sysbench_usr}" --pgsql-password="${sysbench_usrpasswd}" --table-size="${table_size}" --tables="${table_count}" --threads="${threads}" --time="${run_sysbench_time}" --report-interval="${report_interval}
+
+function run_sysbench_a_nopart(){
+
+  if [[ ! -d $sysbench_path ]]
+  then
+    echo "sysbench路径："$sysbench_path" 不存在，请检查！"
+    return -1
+  fi
+  
+  echo "sysbench路径："$sysbench_path
+  
+  su - sysbench
+  cd $sysbench_path
+  source /home/sysbench/gsenv
+  cp /usr3/sysbench/sysbenchsrc/share/sysbench/oltp_common_a_nopart.lua /usr3/sysbench/sysbenchsrc/share/sysbench/oltp_common.lua
+  
+  db1=test_a1_nopart
+  db2=test_a2_nopart
+  db3=test_a3_nopart
+  
+  echo " *************************************A库非分区表数据准备*************************************** "
+  echo "./sysbench "${read_only_lua_path}" --pgsql-db="${db1}" "${parameters}" prepare "
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db1} ${parameters} prepare &
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db2} ${parameters} prepare &
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db3} ${parameters} prepare
+  
+  echo " *************************************A库非分区表read_only测试中*************************************** "
+  echo "./sysbench "${read_only_lua_path}" --pgsql-db="${db1}" "${parameters}" run > "${db1}"_oltp_read_only_"${DATE}".log"
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db1} ${parameters} run > ${db1}_oltp_read_only_${DATE}.log &
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db2} ${parameters} run > ${db2}_oltp_read_only_${DATE}.log &
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db3} ${parameters} run > ${db3}_oltp_read_only_${DATE}.log
+  
+  echo " *************************************A库非分区表read_write测试中*************************************** "
+  echo "./sysbench "${read_write_lua_path}" --pgsql-db="${db1}" "${parameters}" run > "${db1}"_oltp_read_write_"${DATE}".log"
+  ./sysbench ${read_write_lua_path} --pgsql-db=${db1} ${parameters} run > ${db1}_oltp_read_write_${DATE}.log &
+  ./sysbench ${read_write_lua_path} --pgsql-db=${db2} ${parameters} run > ${db2}_oltp_read_write_${DATE}.log &
+  ./sysbench ${read_write_lua_path} --pgsql-db=${db3} ${parameters} run > ${db3}_oltp_read_write_${DATE}.log
+  
+  echo " *************************************A库非分区表insert_only测试中*************************************** "
+  echo "./sysbench "${insert_only_lua_path}" --pgsql-db="${db1}" "${parameters}" run > "${db1}"_oltp_insert_"${DATE}".log"
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db1} ${parameters} run > ${db1}_oltp_insert_${DATE}.log & 
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db2} ${parameters} run > ${db2}_oltp_insert_${DATE}.log & 
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db3} ${parameters} run > ${db3}_oltp_insert_${DATE}.log
+  
+  echo " *************************************A库非分区表update_non_index测试中*************************************** "
+  echo "./sysbench "${update_non_index_lua_path}" --pgsql-db="${db1}" "${parameters}" run > "${db1}"_oltp_update_non_index_"${DATE}".log"
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db1} ${parameters} run > ${db1}_oltp_update_non_index_${DATE}.log & 
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db2} ${parameters} run > ${db2}_oltp_update_non_index_${DATE}.log & 
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db3} ${parameters} run > ${db3}_oltp_update_non_index_${DATE}.log
+
+  echo " *************************************A库非分区表数据清理*************************************** "
+  echo "./sysbench "${read_only_lua_path}" --pgsql-db="${db1}" "${parameters}" cleanup "
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db1} ${parameters} cleanup & 
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db2} ${parameters} cleanup & 
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db3} ${parameters} cleanup
+  
+  return $?
+}
+
+function run_sysbench_b_nopart(){
+
+  if [[ ! -d $sysbench_path ]]
+  then
+    echo "sysbench路径：$sysbench_path 不存在，请检查！"
+    return -1
+  fi
+  
+  su - sysbench
+  cd $sysbench_path
+  source /home/sysbench/gsenv
+  cp /usr3/sysbench/sysbenchsrc/share/sysbench/oltp_common_b_nopart.lua /usr3/sysbench/sysbenchsrc/share/sysbench/oltp_common.lua
+  
+  db1=test_b1_nopart
+  db2=test_b2_nopart
+  db3=test_b3_nopart
+  
+  echo " *************************************B库非分区表数据准备*************************************** "
+  echo "./sysbench "${read_only_lua_path}" --pgsql-db="${db1}" "${parameters}" prepare "
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db1} ${parameters} prepare &
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db2} ${parameters} prepare &
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db3} ${parameters} prepare
+  
+  echo " *************************************B库非分区表read_only测试中*************************************** "
+  echo "./sysbench "${read_only_lua_path}" --pgsql-db="${db1}" "${parameters}" run > "${db1}"_oltp_read_only_"${DATE}".log"
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db1} ${parameters} run > ${db1}_oltp_read_only_${DATE}.log &
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db2} ${parameters} run > ${db2}_oltp_read_only_${DATE}.log &
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db3} ${parameters} run > ${db3}_oltp_read_only_${DATE}.log
+  
+  echo " *************************************B库非分区表read_write测试中*************************************** "
+  echo "./sysbench "${read_write_lua_path}" --pgsql-db="${db1}" "${parameters}" run > "${db1}"_oltp_read_write_"${DATE}".log"
+  ./sysbench ${read_write_lua_path} --pgsql-db=${db1} ${parameters} run > ${db1}_oltp_read_write_${DATE}.log &
+  ./sysbench ${read_write_lua_path} --pgsql-db=${db2} ${parameters} run > ${db2}_oltp_read_write_${DATE}.log &
+  ./sysbench ${read_write_lua_path} --pgsql-db=${db3} ${parameters} run > ${db3}_oltp_read_write_${DATE}.log
+  
+  echo " *************************************B库非分区表insert_only测试中*************************************** "
+  echo "./sysbench "${insert_only_lua_path}" --pgsql-db="${db1}" "${parameters}" run > "${db1}"_oltp_insert_"${DATE}".log"
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db1} ${parameters} run > ${db1}_oltp_insert_${DATE}.log & 
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db2} ${parameters} run > ${db2}_oltp_insert_${DATE}.log & 
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db3} ${parameters} run > ${db3}_oltp_insert_${DATE}.log
+  
+  echo " *************************************B库非分区表update_non_index测试中*************************************** "
+  echo "./sysbench "${update_non_index_lua_path}" --pgsql-db="${db1}" "${parameters}" run > "${db1}"_oltp_update_non_index_"${DATE}".log"
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db1} ${parameters} run > ${db1}_oltp_update_non_index_${DATE}.log & 
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db2} ${parameters} run > ${db2}_oltp_update_non_index_${DATE}.log & 
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db3} ${parameters} run > ${db3}_oltp_update_non_index_${DATE}.log
+
+  echo " *************************************B库非分区表数据清理*************************************** "
+  echo "./sysbench "${read_only_lua_path}" --pgsql-db="${db1}" "${parameters}" cleanup "
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db1} ${parameters} cleanup & 
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db2} ${parameters} cleanup & 
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db3} ${parameters} cleanup
+  
+  return $?
+}
+
+
+
+function run_sysbench_a_part(){
+
+  if [[ ! -d $sysbench_path ]]
+  then
+    echo "sysbench路径：$sysbench_path 不存在，请检查！"
+    return -1
+  fi
+  
+  su - sysbench
+  cd $sysbench_path
+  source /home/sysbench/gsenv
+  cp /usr3/sysbench/sysbenchsrc/share/sysbench/oltp_common_a_part.lua /usr3/sysbench/sysbenchsrc/share/sysbench/oltp_common.lua
+  
+  db1=test_a1_part
+  db2=test_a2_part
+  db3=test_a3_part
+  
+  echo " *************************************A库分区表数据准备*************************************** "
+  echo "./sysbench "${read_only_lua_path}" --pgsql-db="${db1}" "${parameters}" prepare "
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db1} ${parameters} prepare &
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db2} ${parameters} prepare &
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db3} ${parameters} prepare
+  
+  echo " *************************************A库分区表read_only测试中*************************************** "
+  echo "./sysbench "${read_only_lua_path}" --pgsql-db="${db1}" "${parameters}" run > "${db1}"_oltp_read_only_"${DATE}".log"
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db1} ${parameters} run > ${db1}_oltp_read_only_${DATE}.log &
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db2} ${parameters} run > ${db2}_oltp_read_only_${DATE}.log &
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db3} ${parameters} run > ${db3}_oltp_read_only_${DATE}.log
+  
+  echo " *************************************A库分区表数据清理*************************************** "
+  echo "./sysbench "${read_only_lua_path}" --pgsql-db="${db1}" "${parameters}" cleanup "
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db1} ${parameters} cleanup & 
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db2} ${parameters} cleanup & 
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db3} ${parameters} cleanup
+  
+  
+  
+  #echo " *************************************A库分区表read_write测试中*************************************** "
+  #echo "./sysbench "${read_write_lua_path}" --pgsql-db="${db1}" "${parameters}" run > "${db1}"_oltp_read_write_"${DATE}".log"
+  #./sysbench ${read_write_lua_path} --pgsql-db=${db1} ${parameters} run > ${db1}_oltp_read_write_${DATE}.log &
+  #./sysbench ${read_write_lua_path} --pgsql-db=${db2} ${parameters} run > ${db2}_oltp_read_write_${DATE}.log &
+  #./sysbench ${read_write_lua_path} --pgsql-db=${db3} ${parameters} run > ${db3}_oltp_read_write_${DATE}.log
+  
+  echo " *************************************A库分区表数据准备*************************************** "
+  echo "./sysbench "${insert_only_lua_path}" --pgsql-db="${db1}" "${parameters}" prepare "
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db1} ${parameters} prepare &
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db2} ${parameters} prepare &
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db3} ${parameters} prepare
+  
+  echo " *************************************A库分区表insert_only测试中*************************************** "
+  echo "./sysbench "${insert_only_lua_path}" --pgsql-db="${db1}" "${parameters}" run > "${db1}"_oltp_insert_"${DATE}".log"
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db1} ${parameters} run > ${db1}_oltp_insert_${DATE}.log & 
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db2} ${parameters} run > ${db2}_oltp_insert_${DATE}.log & 
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db3} ${parameters} run > ${db3}_oltp_insert_${DATE}.log
+  
+  echo " *************************************A库分区表数据清理*************************************** "
+  echo "./sysbench "${insert_only_lua_path}" --pgsql-db="${db1}" "${parameters}" cleanup "
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db1} ${parameters} cleanup & 
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db2} ${parameters} cleanup & 
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db3} ${parameters} cleanup
+  
+    echo " *************************************A库分区表数据准备*************************************** "
+  echo "./sysbench "${update_non_index_lua_path}" --pgsql-db="${db1}" "${parameters}" prepare "
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db1} ${parameters} prepare &
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db2} ${parameters} prepare &
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db3} ${parameters} prepare
+  
+  echo " *************************************A库分区表update_non_index测试中*************************************** "
+  echo "./sysbench "${update_non_index_lua_path}" --pgsql-db="${db1}" "${parameters}" run > "${db1}"_oltp_update_non_index_"${DATE}".log"
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db1} ${parameters} run > ${db1}_oltp_update_non_index_${DATE}.log & 
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db2} ${parameters} run > ${db2}_oltp_update_non_index_${DATE}.log & 
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db3} ${parameters} run > ${db3}_oltp_update_non_index_${DATE}.log
+
+  echo " *************************************A库分区表数据清理*************************************** "
+  echo "./sysbench "${update_non_index_lua_path}" --pgsql-db="${db1}" "${parameters}" cleanup "
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db1} ${parameters} cleanup & 
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db2} ${parameters} cleanup & 
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db3} ${parameters} cleanup
+  
+  
+  
+  return $?
+}
+
+function run_sysbench_b_part(){
+
+  if [[ ! -d $sysbench_path ]]
+  then
+    echo "sysbench路径：$sysbench_path 不存在，请检查！"
+    return -1
+  fi
+  
+  su - sysbench
+  cd $sysbench_path
+  source /home/sysbench/gsenv
+  cp /usr3/sysbench/sysbenchsrc/share/sysbench/oltp_common_b_part.lua /usr3/sysbench/sysbenchsrc/share/sysbench/oltp_common.lua
+  
+  db1=test_b1_part
+  db2=test_b2_part
+  db3=test_b3_part
+  
+  echo " *************************************B库分区表数据准备*************************************** "
+  echo "./sysbench "${read_only_lua_path}" --pgsql-db="${db1}" "${parameters}" prepare "
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db1} ${parameters} prepare &
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db2} ${parameters} prepare &
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db3} ${parameters} prepare
+  
+  echo " *************************************B库分区表read_only测试中*************************************** "
+  echo "./sysbench "${read_only_lua_path}" --pgsql-db="${db1}" "${parameters}" run > "${db1}"_oltp_read_only_"${DATE}".log"
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db1} ${parameters} run > ${db1}_oltp_read_only_${DATE}.log &
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db2} ${parameters} run > ${db2}_oltp_read_only_${DATE}.log &
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db3} ${parameters} run > ${db3}_oltp_read_only_${DATE}.log
+  
+  echo " *************************************B库分区表数据清理*************************************** "
+  echo "./sysbench "${read_only_lua_path}" --pgsql-db="${db1}" "${parameters}" cleanup "
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db1} ${parameters} cleanup & 
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db2} ${parameters} cleanup & 
+  ./sysbench ${read_only_lua_path} --pgsql-db=${db3} ${parameters} cleanup
+  
+  #echo " *************************************B库分区表read_write测试中*************************************** "
+  #echo "./sysbench "${read_write_lua_path}" --pgsql-db="${db1}" "${parameters}" run > "${db1}"_oltp_read_write_"${DATE}".log"
+  #./sysbench ${read_write_lua_path} --pgsql-db=${db1} ${parameters} run > ${db1}_oltp_read_write_${DATE}.log &
+  #./sysbench ${read_write_lua_path} --pgsql-db=${db2} ${parameters} run > ${db2}_oltp_read_write_${DATE}.log &
+  #./sysbench ${read_write_lua_path} --pgsql-db=${db3} ${parameters} run > ${db3}_oltp_read_write_${DATE}.log
+  
+  echo " *************************************B库分区表数据准备*************************************** "
+  echo "./sysbench "${insert_only_lua_path}" --pgsql-db="${db1}" "${parameters}" prepare "
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db1} ${parameters} prepare &
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db2} ${parameters} prepare &
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db3} ${parameters} prepare
+  
+  echo " *************************************B库分区表insert_only测试中*************************************** "
+  echo "./sysbench "${insert_only_lua_path}" --pgsql-db="${db1}" "${parameters}" run > "${db1}"_oltp_insert_"${DATE}".log"
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db1} ${parameters} run > ${db1}_oltp_insert_${DATE}.log & 
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db2} ${parameters} run > ${db2}_oltp_insert_${DATE}.log & 
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db3} ${parameters} run > ${db3}_oltp_insert_${DATE}.log
+  
+  echo " *************************************B库分区表数据清理*************************************** "
+  echo "./sysbench "${insert_only_lua_path}" --pgsql-db="${db1}" "${parameters}" cleanup "
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db1} ${parameters} cleanup & 
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db2} ${parameters} cleanup & 
+  ./sysbench ${insert_only_lua_path} --pgsql-db=${db3} ${parameters} cleanup
+  
+  
+  echo " *************************************B库分区表数据准备*************************************** "
+  echo "./sysbench "${update_non_index_lua_path}" --pgsql-db="${db1}" "${parameters}" prepare "
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db1} ${parameters} prepare &
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db2} ${parameters} prepare &
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db3} ${parameters} prepare
+  
+  echo " *************************************B库分区表update_non_index测试中*************************************** "
+  echo "./sysbench "${update_non_index_lua_path}" --pgsql-db="${db1}" "${parameters}" run > "${db1}"_oltp_update_non_index_"${DATE}".log"
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db1} ${parameters} run > ${db1}_oltp_update_non_index_${DATE}.log & 
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db2} ${parameters} run > ${db2}_oltp_update_non_index_${DATE}.log & 
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db3} ${parameters} run > ${db3}_oltp_update_non_index_${DATE}.log
+
+  echo " *************************************B库分区表数据清理*************************************** "
+  echo "./sysbench "${update_non_index_lua_path}" --pgsql-db="${db1}" "${parameters}" cleanup "
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db1} ${parameters} cleanup & 
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db2} ${parameters} cleanup & 
+  ./sysbench ${update_non_index_lua_path} --pgsql-db=${db3} ${parameters} cleanup
+  
+  return $?
+}
+
+
+function main(){
+  
+  run_sysbench_a_nopart
+  if [ $? -ne 0 ]
+  then
+    echo "*************************************A库非分区表测试失败*************************************"
+  else
+    echo "*************************************A库非分区表测试成功*************************************"
+  fi
+  
+  run_sysbench_b_nopart
+  if [ $? -ne 0 ]
+  then
+    echo "*************************************B库非分区表测试失败*************************************"
+  else
+    echo "*************************************B库非分区表测试成功*************************************"
+  fi
+  
+  run_sysbench_a_part
+  if [ $? -ne 0 ]
+  then
+    echo "*************************************A库分区表测试失败*************************************"
+  else
+    echo "*************************************A库分区表测试成功*************************************"
+  fi
+  
+  run_sysbench_b_part
+  if [ $? -ne 0 ]
+  then
+    echo "*************************************B库分区表测试失败*************************************"
+  else
+    echo "*************************************B库分区表测试成功*************************************"
+  fi
+  
+}
+
+main $@

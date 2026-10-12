@@ -1,0 +1,160 @@
+#!/bin/bash
+
+dn_path_bak=${dn_path}_back
+DATE=$(date "+%m%d")
+PORT=${perf_port_prefix}${DATE}
+
+function stop_node(){
+  su - $own_usrname <<EOF
+  source /home/$own_usrname/env
+  gsql -d postgres -p $PORT -c 'checkpoint;'
+  gs_ctl stop -D $dn_path
+  sleep 5
+
+  #ps -ef | grep gaussdb | grep $own_usrname | grep $dn_path | grep -v grep | awk '{print "kill", $2}' | bash
+  #ret=$0
+  #cnt=1
+  #while [ $ret = 0 ] && [ $cnt -le 3 ]; do
+    #sleep 10
+    #ps -ef | grep gaussdb | grep $own_usrname | grep $dn_path | grep -v grep
+    #ret=$?
+
+    #ps -ef | grep gaussdb | grep $own_usrname | grep $dn_path | grep -v grep | awk '{print "kill", $2}' | bash
+    #cnt=$((cnt+1))
+  #done
+  #cnt=1
+  #while [ $ret = 0 ] && [ $cnt -le 3 ]; do
+    #sleep 10
+    #ps -ef | grep gaussdb | grep $own_usrname | grep $dn_path | grep -v grep
+    #ret=$?
+
+    #ps -ef | grep gaussdb | grep $own_usrname | grep $dn_path | grep -v grep | awk '{print "kill -9", $2}' | bash
+    #cnt=$((cnt+1))
+  #done
+
+  ps -ef | grep gaussdb | grep $own_usrname | grep $dn_path | grep -v grep
+  ret=$?
+  if [ $ret = "0" ];then
+    echo "Failed when kill gaussdb"
+    exit 1
+  fi
+
+  echo "wal_file_init_num = 60000" >> $dn_path/postgresql.conf
+EOF
+}
+
+function data_backup(){
+  echo "dn_path_bak is :"$dn_path_bak
+  rm -rf $dn_path_bak
+  echo "cp -r $dn_path $dn_path_bak"
+  date
+  cp -r $dn_path $dn_path_bak
+  date
+  chown -R $own_usrname:$own_usrname $dn_path_bak
+  return $?
+}
+
+function data_dump(){
+  echo "dump dn start"
+  echo "*************mv $dn_path/pg_xlog $xlog_path**************"
+  date
+  mv $dn_path/pg_xlog $xlog_path
+  date
+
+  echo "*************mv $dn_path/pg_location/tablespace2 $ts2_path**************"
+  date
+  mv $dn_path/pg_location/tablespace2 $ts2_path
+  date
+
+  echo "*************mv $dn_path/pg_location/tablespace3 $ts3_path**************"
+  date
+  mv $dn_path/pg_location/tablespace3 $ts3_path
+  date
+  
+  ln -svf $xlog_path/pg_xlog $dn_path
+  ln -svf $ts2_path/tablespace2 $dn_path/pg_location
+  ln -svf $ts3_path/tablespace3 $dn_path/pg_location
+
+  return $?
+}
+
+function fn_startDN(){
+  echo '*************环境准备**************'
+  sh $perf_tool/perf_pre.sh
+  #清理缓存
+  ipcs -m | awk '$2 ~/[0-9]+/ {print $2}' | while read s; do ipcrm -m $s; done
+  echo 3 > /proc/sys/vm/drop_caches
+
+  echo '*************启动数据库**************'
+  su - $own_usrname <<EOF
+  source /home/$own_usrname/env
+  echo "numactl -C $server_bind --preferred=0 gs_ctl start -D $dn_path &"
+  numactl -C $server_bind --preferred=0 gs_ctl start -D $dn_path &
+  sleep 60
+
+  echo '获取版本号'
+  version=`gsql -d postgres -p $PORT -c 'select version();'`
+  echo "$version"
+EOF
+  return $?
+}
+
+function fn_startIostat(){
+  echo '*************启动4p检测脚本**************'
+  su - $own_usrname <<EOF
+  source /home/$own_usrname/env
+  cd $perf_tool/iostat
+  echo "nohup sh $perf_tool/iostat/log_gaussdb_iostat.sh $PORT >/dev/null 2>&1 &"
+  nohup sh $perf_tool/iostat/log_gaussdb_iostat.sh $PORT >/dev/null 2>&1 &
+EOF
+  return $?
+}
+
+function main(){
+  stop_node
+  if [ $? -ne 0 ]
+  then
+    echo "数据库停止失败"
+    return -1
+  else
+    echo "数据库停止成功"
+  fi
+
+  data_backup
+  if [ $? -ne 0 ]
+  then
+    echo "data备份失败"
+    exit 1
+  else
+    echo "data备份成功"
+  fi
+
+  data_dump
+  if [ $? -ne 0 ]
+  then
+    echo "data分盘失败"
+    exit 1
+  else
+    echo "data分盘成功"
+  fi
+  
+  fn_startDN
+  if [ $? -ne 0 ]
+  then
+    echo "numa启动数据库失败"
+    exit 1
+  else
+    echo "numa启动数据库成功"
+  fi
+  
+  fn_startIostat
+  if [ $? -ne 0 ]
+  then
+    echo "启动4p检测脚本失败"
+    return -1
+  else
+    echo "启动4p检测脚本成功"
+  fi
+}
+
+main $@

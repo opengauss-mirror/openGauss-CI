@@ -1,0 +1,12 @@
+#!/bin/bash
+
+DATE=$(date "+%m%d")
+PORT=${perf_port_prefix}${DATE}
+TIME=$(date "+%Y%m%d%H%M")
+
+source /home/${own_usrname}/env
+echo "gsql -d ${indexscan_db} -h 20.20.20.64 -p ${PORT} -U ${indexscan_usr} -W ${indexscan_usrpasswd} -f /usr4/indexscan/row_index.sql"
+gsql -d ${indexscan_db} -h 20.20.20.64 -p ${PORT} -U ${indexscan_usr} -W ${indexscan_usrpasswd} -f /usr4/indexscan/row_index.sql
+echo "gsql -d ${indexscan_db} -h 20.20.20.64 -p ${PORT} -U ${indexscan_usr} -W ${indexscan_usrpasswd} -f /usr4/indexscan/p_idx"
+gsql -d ${indexscan_db} -h 20.20.20.64 -p ${PORT} -U ${indexscan_usr} -W ${indexscan_usrpasswd} -f /usr4/indexscan/p_idx > /usr4/indexscan/result/test_indexscan_${TIME}.log
+

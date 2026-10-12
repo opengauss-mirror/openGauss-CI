@@ -1,0 +1,255 @@
+#!/bin/bash
+
+DATE=$(date "+%m%d")
+PORT=${perf_port_prefix}${DATE}
+
+function fn_initCleanEnv() {
+  echo '*************安装前清理环境**************'
+  ps -ef | grep gaussdb | grep -v 'grep' | awk '{print $2}' | xargs kill -9
+  ps -u $own_usrname | grep -v PID | awk '{print $1}' | xargs -I {} kill -9 {}
+  userdel -r $own_usrname
+  rm -rf /home/$own_usrname
+  rm -rf /tmp/.s.PGSQL.*
+
+  ipcs -m | grep ${own_usrname} | tr -s ' ' | cut -d ' ' -f 2 | xargs -I {} ipcrm -m {}
+  ipcs -s | grep ${own_usrname} | tr -s ' ' | cut -d ' ' -f 2 | xargs -I {} ipcrm -m {}
+
+  #清理缓存
+  ipcs -m | awk '$2 ~/[0-9]+/ {print $2}' | while read s; do ipcrm -m $s; done
+  ipcs -s | awk '$2 ~/[0-9]+/ {print $2}' | while read s; do ipcrm -s $s; done
+  echo 3 > /proc/sys/vm/drop_caches
+
+  return $?
+}
+
+function fn_createUser(){
+  echo '*************创建用户和组**************'
+  groupadd $own_usrname
+  useradd -g $own_usrname -d /home/$own_usrname -m -s /bin/bash $own_usrname
+  echo $own_usrpasswd | passwd --stdin $own_usrname
+
+  #echo "$own_usrname ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+  #echo "将用户加入sudoers中"
+  #cat /etc/sudoers
+
+  return $?
+}
+
+function fn_getInstallPkg(){
+  echo '*************获取安装包并解压**************'
+  pkg_path="/home/"$own_usrname"/package"
+  echo 'pkg_path: $pkg_path'
+  mkdir -p $pkg_path
+  cd $pkg_path
+
+  cpu=$(lscpu | grep Architecture | awk '{print $2}')
+  OS=$(cat /etc/os-release | grep PRETTY_NAME | awk -F \" '{print $2}')
+  os_name=""
+  os_arch=""
+  if [[ ${OS} =~ ^CentOS ]]
+  then
+    os_name="CentOS"
+    os_arch="x86"
+  elif [[ ${OS} =~ ^openEuler ]]
+  then
+    os_version=$(cat /etc/os-release | grep PRETTY_NAME | awk -F \" '{print $2}' | awk -F ' ' '{print $2}')
+    os_name="openEuler"${os_version}
+    if [ $os_version == 20.03 ]; then
+      if [ $cpu == aarch64 ]; then
+        os_arch="arm"
+      elif [ $cpu == x86_64 ]; then
+        os_arch="x86_openEuler"
+      fi
+    elif [ $os_version == 22.03 ]; then
+      os_name="openEuler22.03"
+      if [ $cpu == aarch64 ]; then
+        os_arch="arm_2203"
+      elif [ $cpu == x86_64 ]; then
+        os_arch="x86_openEuler_2203"
+      fi
+    fi
+  fi
+  
+  echo "-------------------------------------------"
+  echo "OS:$OS"
+  echo "os_arch:$os_arch"
+  echo "os_name:$os_name"
+  echo "os_version:$os_version"
+  echo "cpu:$cpu"
+  echo "-------------------------------------------"
+  
+  #echo "wget $getpkg_path/latest/$os_arch/openGauss-Server-$DB_RELEASE_VERSION-$os_name-$cpu.tar.bz2"
+  #wget $getpkg_path"/latest/"$os_arch"/openGauss-Server-$DB_RELEASE_VERSION-$os_name-$cpu.tar.bz2"
+  
+  echo "scp ogperfuser@20.20.20.73:/home/tpcc_1p1s_nopart/package/openGauss-Server-$DB_RELEASE_VERSION-$os_name-$cpu.tar.bz2 $pkg_path"
+  expect <<EOF
+  set timeout -1
+ 
+  spawn scp ogperfuser@20.20.20.73:/home/tpcc_1p1s_part/package/openGauss-Server-$DB_RELEASE_VERSION-$os_name-$cpu.tar.bz2 $pkg_path
+  
+  expect {
+      "*yes/no*" { send "yes\r"; exp_continue }
+      "*assword:" { send "$pkg_root_password\n" }
+      "]#" { send "\n" }
+  }
+  expect eof
+EOF
+ 
+
+  #测试用单机数据库
+  cp /usr1/test600/openGauss-Server-$DB_RELEASE_VERSION-$os_name-$cpu.tar.bz2 $pkg_path
+  #cp /usr1/test500/openGauss-5.0.3-openEuler-64bit.tar.bz2 $pkg_path
+  #cp /usr1/jhb/openGauss-6.0.0-openEuler-64bit.tar.bz2 $pkg_path
+
+  if [ -f "./openGauss-Server-$DB_RELEASE_VERSION-$os_name-$cpu.tar.bz2" ]
+  then
+    tar -jxf openGauss-Server-$DB_RELEASE_VERSION-$os_name-$cpu.tar.bz2
+  else
+    echo "下载安装包失败"
+    ls $pkg_path
+    return -1
+  fi
+
+  return $?
+}
+
+function fn_setEnv(){
+  echo '*************配置env文件**************'
+  echo "export LD_LIBRARY_PATH=$pkg_path/lib:$LD_LIBRARY_PATH" > /home/$own_usrname/env
+  echo "export GAUSSHOME=$pkg_path" >> /home/$own_usrname/env
+  echo "export PGPORT=$PORT" >> /home/$own_usrname/env
+  echo "export PATH=$PATH:$pkg_path/bin" >> /home/$own_usrname/env
+  chown $own_usrname:$own_usrname /home/$own_usrname/env
+
+  return $?
+}
+
+function fn_initdb(){
+  echo '*************nvme创建数据目录**************'
+  rm -rf $dn_disk/$own_usrname $xlog_path $ts2_path $ts3_path
+  mkdir -p $dn_path $xlog_path $ts2_path $ts3_path
+  chown -R $own_usrname:$own_usrname $dn_disk/$own_usrname
+  chown -R $own_usrname:$own_usrname $xlog_path
+  chown -R $own_usrname:$own_usrname $ts2_path
+  chown -R $own_usrname:$own_usrname $ts3_path
+  chown -R $own_usrname:$own_usrname /home/$own_usrname
+
+  sh $perf_tool/perf_pre.sh
+  chown -R $own_usrname:$own_usrname $perf_tool
+
+  echo '*************初始化数据库**************'
+  su - $own_usrname <<EOF
+  echo "source /home/$own_usrname/env"
+  source /home/$own_usrname/env
+  gs_initdb -w $db_init_passwd -D $dn_path --nodename=one_dn -E UTF-8 --locale=en_US.UTF-8
+  echo "cp -r ${perf_tool}/postgres-2p-${part_type}.conf $dn_path/postgresql.conf"
+  cp -r ${perf_tool}/postgres-2p-${part_type}.conf $dn_path/postgresql.conf
+
+  cat << __END__ >> $dn_path/postgresql.conf
+listen_addresses = 'localhost, $server_ip'
+port = ${PORT}
+__END__
+
+  cat << __END2__ >> $dn_path/pg_hba.conf
+host $tpcc_db $tpcc_usr $client_ip/32 sha256
+host $tpcc_db $tpcc_usr 20.20.20.64/32 sha256
+__END2__
+EOF
+
+  return $?
+}
+
+function fn_startDN(){
+  echo '*************配置core路径**************'
+  mkdir -p /home/corefile
+  chmod 777 -R /home/corefile
+  echo 'home/corefile/core-%e-%p-%t' > /proc/sys/kernel/core_pattern
+  #ulimit -c unlimited
+
+  echo '*************启动数据库**************'
+  su - $own_usrname <<EOF
+  source /home/$own_usrname/env
+  gs_ctl start -D $dn_path
+  sleep 20
+EOF
+  echo '获取版本号'
+  version=`su - $own_usrname -c "source /home/$own_usrname/env; gsql -d postgres -p $PORT -c 'select version();'"`
+  echo "$version"
+  version_check=`su - $own_usrname -c "source /home/$own_usrname/env; gsql -d postgres -p $PORT -c 'select version();' | grep openGauss | awk '{print \\$2}'"`
+  echo "version_check:"
+  echo "$version_check"
+  if [[ "$version_check" != "$DB_RELEASE_VERSION" ]]; then
+    echo "version check failed!"
+    return -1
+  fi
+  
+  commit_id=`su - $own_usrname -c "source /home/$own_usrname/env; gaussdb -V"`
+  echo $commit_id
+
+  echo '*************创建tpcc使用的用户与数据库**************'
+  su - $own_usrname <<EOF
+  source /home/$own_usrname/env
+  echo "gsql -d postgres -p $PORT -c 'create user $tpcc_usr identified by $tpcc_usrpasswd;alter user $tpcc_usr sysadmin;create database $tpcc_db;'"
+  gsql -d postgres -p $PORT -c 'create user $tpcc_usr identified by "$tpcc_usrpasswd";alter user $tpcc_usr sysadmin;create database $tpcc_db;'
+EOF
+  return $?
+}
+
+function main(){
+  fn_initCleanEnv
+  if [ $? -ne 0 ]
+  then
+    echo "初始化用户失败"
+    return -1
+  else
+    echo "初始化用户成功"
+  fi
+
+  fn_createUser
+  if [ $? -ne 0 ]
+  then
+    echo "创建用户和组失败"
+    return -1
+  else
+    echo "创建用户和组成功"
+  fi
+
+  fn_getInstallPkg
+  if [ $? -ne 0 ]
+  then
+    echo "获取安装包并解压失败"
+    return -1
+  else
+    echo "获取安装包并解压成功"
+  fi
+
+  fn_setEnv
+  if [ $? -ne 0 ]
+  then
+    echo "配置env文件失败"
+    return -1
+  else
+    echo "配置env文件成功"
+  fi
+
+  fn_initdb
+  if [ $? -ne 0 ]
+  then
+    echo "初始化数据库失败"
+    return -1
+  else
+    echo "初始化数据库成功"
+  fi
+
+  fn_startDN
+  if [ $? -ne 0 ]
+  then
+    echo "启动数据库并创建tpcc库失败"
+    return -1
+  else
+    echo "启动数据库并创建tpcc库成功"
+  fi
+}
+
+main $@

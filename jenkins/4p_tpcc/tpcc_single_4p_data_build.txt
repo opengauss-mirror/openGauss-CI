@@ -1,0 +1,95 @@
+#!/bin/bash
+
+DATE=$(date "+%m%d")
+PORT=${perf_port_prefix}${DATE}
+
+function func_setProp(){
+  if [[ ! -d $tpcc_path ]]
+  then
+    echo "benchmarksql路径：$tpcc_path 不存在，请检查！"
+    return -1
+  fi
+
+  cd $tpcc_path
+  cp -r $tpcc_path/runDatabaseBuild.sh.4p $tpcc_path/runDatabaseBuild.sh
+  #cp -r $tpcc_path/runDatabaseBuild.sh.ustore $tpcc_path/runDatabaseBuild.sh
+  rm -rf $tpcc_path/za_4p_5min.pg
+  rm -rf $tpcc_path/za_4p_60min.pg
+  cp -f $tpcc_path/za_template.pg $tpcc_path/za_4p_5min.pg
+  cp -f $tpcc_path/za_template.pg $tpcc_path/za_4p_60min.pg
+  #cp -f $tpcc_path/za_template.pg $tpcc_path/za_4p_8h.pg
+
+  conn_stmt="jdbc:postgresql:\/\/${server_ip}:${PORT}\/${tpcc_db}\?prepareThreshold=1\&batchMode=on\&fetchsize=10\&loggerLevel=OFF"
+  replace_pwd=${tpcc_usrpasswd//\@/\\\@}
+  
+  echo "start!"
+  echo ${conn_stmt}
+  echo ${tpcc_usr}
+  echo ${replace_pwd}
+  echo ${tpcc_warehouses}
+  echo ${tpcc_terminals}
+  echo "stop!"
+
+  sed -i "s/replace_conn/${conn_stmt}/g" $tpcc_path/za_4p_5min.pg
+  sed -i "s/replace_user/${tpcc_usr}/g" $tpcc_path/za_4p_5min.pg
+  sed -i "s/replace_usrpasswd/${replace_pwd}/g" $tpcc_path/za_4p_5min.pg
+  sed -i "s/replace_warehouses/${tpcc_warehouses}/g" $tpcc_path/za_4p_5min.pg
+  sed -i "s/replace_terminals/${tpcc_terminals}/g" $tpcc_path/za_4p_5min.pg
+  sed -i "s/replace_runmins/5/g" $tpcc_path/za_4p_5min.pg
+  
+
+  sed -i "s/replace_conn/${conn_stmt}/g" $tpcc_path/za_4p_60min.pg
+  sed -i "s/replace_user/${tpcc_usr}/g" $tpcc_path/za_4p_60min.pg
+  sed -i "s/replace_usrpasswd/${replace_pwd}/g" $tpcc_path/za_4p_60min.pg
+  sed -i "s/replace_warehouses/${tpcc_warehouses}/g" $tpcc_path/za_4p_60min.pg
+  sed -i "s/replace_terminals/${tpcc_terminals}/g" $tpcc_path/za_4p_60min.pg
+  sed -i "s/replace_runmins/60/g" $tpcc_path/za_4p_60min.pg
+
+  cp -f $tpcc_path/za_4p_60min.pg $tpcc_path/za_4p_8h.pg
+  sed -i "s/runMins=60/runMins=480/g" $tpcc_path/za_4p_8h.pg
+  
+  cp -f $tpcc_path/za_4p_60min.pg $tpcc_path/za_4p_4h.pg
+  sed -i "s/runMins=60/runMins=240/g" $tpcc_path/za_4p_4h.pg
+  
+  echo "za_4p_5min.pg"
+  cat $tpcc_path/za_4p_5min.pg
+  echo "za_4p_60min.pg"
+  cat $tpcc_path/za_4p_60min.pg
+  echo "za_4p_8h.pg" 
+  cat $tpcc_path/za_4p_8h.pg
+  echo "za_4p_4h.pg" 
+  cat $tpcc_path/za_4p_4h.pg
+
+  return $?
+}
+
+function run_databuild(){
+  cd $tpcc_path
+  $tpcc_path/runDatabaseBuild.sh za_4p_5min.pg
+  return $?
+}
+
+function main(){
+  func_setProp
+  if [ $? -ne 0 ]
+  then
+    echo "环境检查|配置文件准备失败"
+    return -1
+  else
+    echo "环境检查|配置文件准备成功"
+  fi
+
+  run_databuild
+  if [ $? -ne 0 ]
+  then
+    echo "databuild失败！"
+    exit 1
+  else
+    echo "databuild成功"
+  fi
+  date
+  echo "等待数据刷盘10min"
+  #sleep 600
+}
+
+main $@

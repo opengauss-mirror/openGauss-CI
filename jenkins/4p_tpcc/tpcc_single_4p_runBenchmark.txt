@@ -1,0 +1,299 @@
+#!/bin/bash
+
+function run_tpcc(){
+  cd $tpcc_path
+  
+  sh $tpcc_path/bind_bench_48c.sh
+  #sh $tpcc_path/irq_check.sh
+  
+  ipcs -m | awk '$2 ~/[0-9]+/ {print $2}' | while read s; do ipcrm -m $s; done
+  ipcs -s | awk '$2 ~/[0-9]+/ {print $2}' | while read s; do ipcrm -s $s; done
+  echo 3 > /proc/sys/vm/drop_caches
+  
+  filename="$tpcc_path/tpcc_4p_5min.log"
+  rm -rf $filename
+  echo "numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh za_4p_5min.pg > $filename &"
+  numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh za_4p_5min.pg > $filename &
+  endvar=
+  count=0
+  while ([ -z "$endvar" ] && [ $count -lt 310 ]) || [ ! -f "$filename" ] || [ $count -lt 13 ]
+  do
+    count=`expr $count + 1`
+    value=`cat $filename | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}' | grep "MB"`
+    if [[ -z $value ]]; then
+      echo -n $count":"
+      cat $filename | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}'
+    fi
+
+    sleep 1
+    endvar=`cat $filename | grep "Measured tpmC (NewOrders)"`
+  done
+  echo "******************5min 预热完成*******************"
+
+  dot_log="$tpcc_path/tpmc_dot.log"
+  file_name_60="$tpcc_path/tpcc.log"
+  rm -rf $file_name_60 $dot_log
+  sleep 600
+  #sleep 10
+  
+  date
+  echo "numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh za_4p_60min.pg > $file_name_60 &"
+  numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh za_4p_60min.pg > $file_name_60 &
+  endvar=
+  count=0 #3630
+  while ([ -z "$endvar" ] && [ $count -lt 3630 ]) || [ ! -f "$file_name_60" ]
+  do
+    count=`expr $count + 1`
+    value=`cat $file_name_60 | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}' | grep "MB"`
+    if [[ -z $value ]]; then
+      echo -n $count":"
+      cur_val=`cat $file_name_60 | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}'`
+      echo $cur_val
+      echo "${count}:${cur_val}" >> $dot_log
+    fi
+
+    sleep 1
+    endvar=`cat $file_name_60 | grep "Measured tpmC (NewOrders)"`
+
+    if [[ $count -eq 1000 ]]; then
+      expect <<EOF
+      spawn ssh oguser@${server_ip} "sh ${perf_tool}/get_resource_result.sh"
+      expect {
+          "*yes/no*" { send "yes\r"; exp_continue }
+          "*assword:" { send "OpenGauss2#3_4%11\r" }
+          "]#" { send "\n" }
+      }
+      expect eof
+EOF
+      
+      echo "******************捕捉火焰图*******************"
+      expect <<EOF
+      spawn ssh oguser@${server_ip} "sh ${perf_tool}/FlameGraph-master/za.sh"
+      expect {
+          "*yes/no*" { send "yes\r"; exp_continue }
+          "*assword:" { send "OpenGauss2#3_4%11\r" }
+          "]#" { send "\n" }
+      }
+      expect eof
+EOF
+    fi
+  done
+  tail -n 5 $file_name_60
+  echo "******************1h 执行完成*******************"
+
+  tpmc=`cat $file_name_60 | grep "Measured tpmC (NewOrders)" | awk '{print $NF}'`
+  echo "tpmc(NewOrders): "$tpmc
+  echo $tpmc > $tpcc_path/tpmc_res.log
+
+  return $?
+}
+
+function run_tpcc_8h(){
+  cd $tpcc_path
+  
+  sh $tpcc_path/bind_bench_48c.sh
+  #sh $tpcc_path/irq_check.sh
+  
+  ipcs -m | awk '$2 ~/[0-9]+/ {print $2}' | while read s; do ipcrm -m $s; done
+  ipcs -s | awk '$2 ~/[0-9]+/ {print $2}' | while read s; do ipcrm -s $s; done
+  echo 3 > /proc/sys/vm/drop_caches
+  
+  filename="$tpcc_path/tpcc_4p_5min.log"
+  rm -rf $filename
+  echo "numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh za_4p_5min.pg > $filename &"
+  numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh za_4p_5min.pg > $filename &
+  endvar=
+  count=0
+  while ([ -z "$endvar" ] && [ $count -lt 310 ]) || [ ! -f "$filename" ] || [ $count -lt 13 ]
+  do
+    count=`expr $count + 1`
+    value=`cat $filename | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}' | grep "MB"`
+    if [[ -z $value ]]; then
+      echo -n $count":"
+      cat $filename | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}'
+    fi
+
+    sleep 1
+    endvar=`cat $filename | grep "Measured tpmC (NewOrders)"`
+  done
+  echo "******************5min 预热完成*******************"
+
+  dot_log="$tpcc_path/tpmc_dot.log"
+  file_name_8h="$tpcc_path/tpcc.log"
+  rm -rf $file_name_8h $dot_log
+  sleep 600
+  #sleep 10
+  
+  date
+  echo "numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh za_4p_8h.pg > $file_name_8h &"
+  numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh za_4p_8h.pg > $file_name_8h &
+  endvar=
+  count=0 #3630
+  while ([ -z "$endvar" ] && [ $count -lt 28830 ]) || [ ! -f "$file_name_8h" ]
+  do
+    count=`expr $count + 1`
+    value=`cat $file_name_8h | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}' | grep "MB"`
+    if [[ -z $value ]]; then
+      echo -n $count":"
+      cur_val=`cat $file_name_8h | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}'`
+      echo $cur_val
+      echo "${count}:${cur_val}" >> $dot_log
+    fi
+
+    sleep 1
+    endvar=`cat $file_name_8h | grep "Measured tpmC (NewOrders)"`
+
+    if [[ $count -eq 1000 ]]; then
+      expect <<EOF
+      spawn ssh oguser@${server_ip} "sh ${perf_tool}/get_resource_result.sh"
+      expect {
+          "*yes/no*" { send "yes\r"; exp_continue }
+          "*assword:" { send "OpenGauss2#3_4%11\r" }
+          "]#" { send "\n" }
+      }
+      expect eof
+EOF
+      
+      echo "******************捕捉火焰图*******************"
+      expect <<EOF
+      spawn ssh oguser@${server_ip} "sh ${perf_tool}/FlameGraph-master/za.sh"
+      expect {
+          "*yes/no*" { send "yes\r"; exp_continue }
+          "*assword:" { send "OpenGauss2#3_4%11\r" }
+          "]#" { send "\n" }
+      }
+      expect eof
+EOF
+    fi
+  done
+  tail -n 5 $file_name_8h
+  echo "******************8h 执行完成*******************"
+
+  tpmc=`cat $file_name_8h | grep "Measured tpmC (NewOrders)" | awk '{print $NF}'`
+  echo "tpmc(NewOrders): "$tpmc
+  echo $tpmc > $tpcc_path/tpmc_res.log
+
+  return $?
+}
+
+function run_tpcc_4h(){
+  cd $tpcc_path
+  
+  sh $tpcc_path/bind_bench_48c.sh
+  #sh $tpcc_path/irq_check.sh
+  
+  ipcs -m | awk '$2 ~/[0-9]+/ {print $2}' | while read s; do ipcrm -m $s; done
+  ipcs -s | awk '$2 ~/[0-9]+/ {print $2}' | while read s; do ipcrm -s $s; done
+  echo 3 > /proc/sys/vm/drop_caches
+  
+  filename="$tpcc_path/tpcc_4p_5min.log"
+  rm -rf $filename
+  echo "numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh za_4p_5min.pg > $filename &"
+  numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh za_4p_5min.pg > $filename &
+  endvar=
+  count=0
+  while ([ -z "$endvar" ] && [ $count -lt 310 ]) || [ ! -f "$filename" ] || [ $count -lt 13 ]
+  do
+    count=`expr $count + 1`
+    value=`cat $filename | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}' | grep "MB"`
+    if [[ -z $value ]]; then
+      echo -n $count":"
+      cat $filename | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}'
+    fi
+
+    sleep 1
+    endvar=`cat $filename | grep "Measured tpmC (NewOrders)"`
+  done
+  echo "******************5min 预热完成*******************"
+
+  dot_log="$tpcc_path/tpmc_dot.log"
+  file_name_4h="$tpcc_path/tpcc.log"
+  rm -rf $file_name_4h $dot_log
+  sleep 600
+  #sleep 10
+  
+  date
+  echo "numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh za_4p_4h.pg > $file_name_4h &"
+  numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh za_4p_4h.pg > $file_name_4h &
+  endvar=
+  count=0 #3630
+  while ([ -z "$endvar" ] && [ $count -lt 14430 ]) || [ ! -f "$file_name_4h" ]
+  do
+    count=`expr $count + 1`
+    value=`cat $file_name_4h | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}' | grep "MB"`
+    if [[ -z $value ]]; then
+      echo -n $count":"
+      cur_val=`cat $file_name_4h | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}'`
+      echo $cur_val
+      echo "${count}:${cur_val}" >> $dot_log
+    fi
+
+    sleep 1
+    endvar=`cat $file_name_4h | grep "Measured tpmC (NewOrders)"`
+
+    if [[ $count -eq 1000 ]]; then
+      expect <<EOF
+      spawn ssh oguser@${server_ip} "sh ${perf_tool}/get_resource_result.sh"
+      expect {
+          "*yes/no*" { send "yes\r"; exp_continue }
+          "*assword:" { send "OpenGauss2#3_4%11\r" }
+          "]#" { send "\n" }
+      }
+      expect eof
+EOF
+      
+      echo "******************捕捉火焰图*******************"
+      expect <<EOF
+      spawn ssh oguser@${server_ip} "sh ${perf_tool}/FlameGraph-master/za.sh"
+      expect {
+          "*yes/no*" { send "yes\r"; exp_continue }
+          "*assword:" { send "OpenGauss2#3_4%11\r" }
+          "]#" { send "\n" }
+      }
+      expect eof
+EOF
+    fi
+  done
+  tail -n 5 $file_name_4h
+  echo "******************4h 执行完成*******************"
+
+  tpmc=`cat $file_name_4h | grep "Measured tpmC (NewOrders)" | awk '{print $NF}'`
+  echo "tpmc(NewOrders): "$tpmc
+  echo $tpmc > $tpcc_path/tpmc_res.log
+
+  return $?
+}
+
+function main(){
+  run_tpcc
+  #run_tpcc_4h
+  if [ $? -ne 0 ]
+  then
+    echo "benchmarksql异常！"
+    echo "磁盘使用情况："
+    df -h
+    exit 1
+  fi
+  
+  expect <<EOF
+  set timeout 300
+  spawn scp -r $tpcc_path/tpmc_res.log oguser@20.20.20.56:/usr1/everyday_performance_data/4p_single_part/tpmc_res.log
+  expect {
+      "*yes/no*" { send "yes\r"; exp_continue }
+      "*assword:" { send "$server_root_passwd\n" }
+      "]#" { send "\n" }
+  }
+  expect eof
+  spawn scp -r $dot_log oguser@20.20.20.56:/usr1/everyday_performance_data/4p_single_part/tpmc_dot.log
+  expect {
+      "*yes/no*" { send "yes\r"; exp_continue }
+      "*assword:" { send "$server_root_passwd\n" }
+      "]#" { send "\n" }
+  }
+  expect eof
+EOF
+  
+  exit 0
+}
+
+main $@

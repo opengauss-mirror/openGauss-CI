@@ -1,0 +1,10 @@
+#!/bin/bash
+
+DATE=$(date "+%m%d")
+PORT=${perf_port_prefix}${DATE}
+TIME=$(date "+%Y%m%d%H%M")
+
+source /home/${own_usrname}/env
+cd /usr4/iud
+sh test_iud.sh runall > /usr4/iud/result/test_iud_${TIME}.log
+cp -r /usr4/iud/result.txt /usr4/iud/result/result_iud_${TIME}.log

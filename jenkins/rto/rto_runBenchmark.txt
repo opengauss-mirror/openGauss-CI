@@ -1,0 +1,171 @@
+#!/bin/bash
+DATE=$(date "+%m%d")
+PORT=${perf_port_prefix}${DATE}
+
+function run_tpcc(){
+  cd $tpcc_path
+  
+  sh $tpcc_path/bind_bench_48c.sh
+  sh $tpcc_path/irq_check.sh
+  
+  filename="$tpcc_path/rto_perf.log"
+  rto_pg="rto_test.pg"
+  rto_standby_pg="rto_standby.pg"
+  #primary_ip_in_pg="192.168.166.173"
+  primary_ip_in_pg="20.20.20.73"
+  rm -rf $filename $rto_pg $rto_standby_pg
+  
+  cp 1p1s_10min_nopart.pg $rto_standby_pg
+  echo "111111111111111111111111111111111111111111111111"
+  sed -i "s/${primary_ip_in_pg}/${standby1_ip}/g" $rto_standby_pg
+  sed '16s/.*/limitTxnsPerMin=2100000/' 1p1s_10min_nopart.pg > $rto_pg
+  echo "111111111111111111111111111111111111111111111111"
+   
+  echo "numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh $rto_pg > $filename &"
+  numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh $rto_pg > $filename 2>/dev/null &
+  count=0
+  date
+  while [ $count -lt 360 ]
+  do
+    count=`expr $count + 1`
+    value=`cat $filename | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}' | grep "MB"`
+    if [[ -z $value ]]; then
+      echo -n $count":"
+      cat $filename | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}'
+    fi
+
+    sleep 1
+  done
+  date
+
+  return $?
+}
+
+function main(){
+  run_tpcc
+  if [ $? -ne 0 ]
+  then
+    echo "benchmarksql异常！"
+    echo "磁盘使用情况："
+    df -h
+    exit 1
+  fi
+  
+  rto_log="$tpcc_path/rto_res.log"
+  primary_tpmc=`cat $filename | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}'`
+  if [ -z "$primary_tpmc" ]; then
+    primary_tpmc=0
+  fi
+  echo "primary node last tpmC:$primary_tpmc"
+  echo "primary node last tpmC:$primary_tpmc" > $rto_log
+  
+  #date
+  #sleep 150
+  #date
+  #
+  expect <<EOF
+  spawn ssh ogperfuser@${primary_ip} "su - ${own_usrname} -c 'source /home/$own_usrname/env; cd /usr1/tpcc_1p1s_nopart/; sh /usr1/newtest/test.sh;'"
+  expect {
+    "*yes/no*" { send "yes\r"; exp_continue }
+    "*assword:" { send "$server_root_passwd\r" }
+    "]#" { send "\n" }
+  }
+  expect eof
+EOF
+  
+  
+  date
+  
+  expect <<EOF
+  spawn ssh ogperfuser@${primary_ip} "ps -u $own_usrname | grep -v PID | awk \'{print \\\$1}\' | xargs -I {} kill -9 {}"
+  expect {
+    "*yes/no*" { send "yes\r"; exp_continue }
+    "*assword:" { send "$server_root_passwd\r" }
+    "]#" { send "\n" }
+  }
+  expect eof
+EOF
+
+  ps -ef | grep runBenchmark
+  ps -ef | grep runBenchmark | grep -v 'grep' | awk '{print $2}' | xargs kill -9
+
+  date_start=`date +%T`
+  echo "RTO START: $date_start"
+  echo "RTO START: $date_start" >> $rto_log
+  
+  echo "$own_usrpasswd"
+  
+  expect <<EOF
+  spawn ssh ogperfuser@${standby1_ip} "su - ${own_usrname} -c 'source /home/$own_usrname/env; gs_ctl query -D $dn_path; gs_ctl failover -D $dn_path';gs_ctl query -D $dn_path;"
+  expect {
+    "*yes/no*" { send "yes\r"; exp_continue }
+    "*assword:" { send "$server_root_passwd\r" }
+    "]#" { send "\n" }
+  }
+  expect eof
+EOF
+
+  date_stop1=`date +%T`
+  echo "RTO STOP1: $date_stop1"
+  echo "RTO STOP1(failover end): $date_stop1"
+
+  echo "execute standby TPCC"
+  filename_s="$tpcc_path/rto_standby.log"
+  value_standby="ERROR"
+  count=0
+  while [ -n "$value_standby" ] && [ $count -lt 120 ]
+  do
+    count=`expr $count + 1`
+    numactl -C ${client_bind} sh $tpcc_path/runBenchmark.sh $rto_standby_pg > $filename_s &
+    sleep 1
+    value_standby=`cat $filename_s | grep "ERROR"`
+  done
+  
+  echo "wait standby tpcc: $count"
+  date_stop2=`date +%T`
+  echo "RTO STOP2: $date_stop2"
+  echo "RTO STOP: $date_stop2" >> $rto_log
+  
+  date
+  endvar=
+  count=0
+  while ([ -z "$endvar" ] && [ $count -lt 310 ]) || [ $count -lt 15 ]
+  do
+    count=`expr $count + 1`
+    value=`cat $filename_s | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}' | grep "MB"`
+    if [[ -z $value ]]; then
+      echo -n $count":"
+      cat $filename_s | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}'
+    fi
+
+    sleep 1
+    endvar=`cat $filename_s | grep "Measured tpmC (NewOrders)"`
+  done
+
+  #standby_tpmc=`cat $filename_s | grep "Measured tpmC (NewOrders)" | awk '{print $(NF)}'`
+  standby_tpmc=`cat $filename_s | grep "Running Average tpmTOTAL" | awk 'END {print $(NF-9)}'`
+  if [ -z "$standby_tpmc" ]; then
+    standby_tpmc=0
+  fi
+  echo "After standby failover last tpmC:$standby_tpmc"
+  echo "After standby failover last tpmC:$standby_tpmc" >> $rto_log
+  
+  ps -ef | grep runBenchmark
+  ps -ef | grep runBenchmark | grep -v 'grep' | awk '{print $2}' | xargs kill -9
+  date
+  
+  expect <<EOF
+  set timeout 300
+  spawn scp -r $rto_log oguser@20.20.20.56:/usr1/everyday_performance_data/rto/rto_res.log
+  expect {
+      "*yes/no*" { send "yes\n"; exp_continue }
+      "*assword:" { send "$update_root_passwd\n" }
+      "]#" { send "\n" }
+  }
+  expect eof
+EOF
+
+  exit 0
+}
+
+main $@
