@@ -32,20 +32,19 @@ RUN set -eux; \
     
 COPY loop.sh /usr/local/bin/
 COPY entrypoint_llt.sh /usr/local/bin/
-COPY config_cmake_x86.ini /data/llt/PrivateBuild_tools/
-COPY config_cmake_arm.ini /data/llt/PrivateBuild_tools/
-COPY config.ini /data/llt/PrivateBuild_tools/
-COPY entrypoint_llt.sh /data/llt/PrivateBuild_tools/
-COPY Private_LLT_Build.sh /data/llt/PrivateBuild_tools/
-COPY Private_Main.sh /data/llt/PrivateBuild_tools/
+COPY serverdeps/config_cmake_x86.ini /data/llt/PrivateBuild_tools/
+COPY serverdeps/config_cmake_arm.ini /data/llt/PrivateBuild_tools/
+COPY serverdeps/config.ini /data/llt/PrivateBuild_tools/
+COPY serverdeps/Private_LLT_Build.sh /data/llt/PrivateBuild_tools/
+COPY serverdeps/Private_Main.sh /data/llt/PrivateBuild_tools/
 RUN chmod 755 /usr/local/bin/entrypoint_llt.sh
 RUN chmod 755 /usr/local/bin/loop.sh
 
-COPY 01.log.sh /data/llt/PrivateBuild_tools/function/
-COPY 02.cleanEnv_ipcs.sh /data/llt/PrivateBuild_tools/function/
-COPY 03.get_osname.sh /data/llt/PrivateBuild_tools/function/
-COPY config_gcc7.ini /data/config/
-COPY config_gcc10.ini /data/config/
+COPY serverdeps/01.log.sh /data/llt/PrivateBuild_tools/function/
+COPY serverdeps/02.cleanEnv_ipcs.sh /data/llt/PrivateBuild_tools/function/
+COPY serverdeps/03.get_osname.sh /data/llt/PrivateBuild_tools/function/
+COPY serverdeps/config_gcc7.ini /data/config/
+COPY serverdeps/config_gcc10.ini /data/config/
 
 
 ENTRYPOINT ["/usr/local/bin/loop.sh"]
