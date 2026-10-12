@@ -19,16 +19,15 @@ if [[ "$gitcodeTargetBranch"x = "dev10"x || "$gitcodeTargetBranch"x = "glt"x  ||
     exit 0
 fi
 
-
 function prepare_deps() {
     mkdir -p ${WORKSPACE}/dependency/cmake
 
     if [ "$(uname -m)" = "aarch64" ]; then
-        tar -xf /cmake-3.19.5-Linux-aarch64.tar.gz -C ${WORKSPACE}/dependency/cmake/
-        mv /data/llt/PrivateBuild_tools/config_cmake_arm.ini /data/llt/PrivateBuild_tools/config_cmake.ini
+        tar -xf /cmake-3.19.5-Linux-aarch64.tar.gz -C ${WORKSPACE}/dependency/cmake/ --strip-components 1
+        cp /data/llt/PrivateBuild_tools/config_cmake_arm.ini /data/llt/PrivateBuild_tools/config_cmake.ini
     else
-        tar -xf /cmake-3.19.5-Linux-x86_64.tar.gz -C ${WORKSPACE}/dependency/cmake/
-        mv /data/llt/PrivateBuild_tools/config_cmake_x86.ini /data/llt/PrivateBuild_tools/config_cmake.ini
+        tar -xf /cmake-3.19.5-Linux-x86_64.tar.gz -C ${WORKSPACE}/dependency/cmake/ --strip-components 1
+        cp /data/llt/PrivateBuild_tools/config_cmake_x86.ini /data/llt/PrivateBuild_tools/config_cmake.ini
     fi
 }
 
