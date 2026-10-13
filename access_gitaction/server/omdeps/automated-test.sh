@@ -69,7 +69,6 @@ main() {
                 echo -e "\033[31m 配置文件XML不存在：${xmlpath}  \033[0m"
                 exit 1
         else
-                sed -i "s/slave-x86-0007/${hostname}/g" ${xmlpath}
                 installpath=$(cat ${xmlpath} | grep name=\"gaussdbAppPath\")
                 installpath=${installpath#*/}
                 installpath=${installpath%cluster*}

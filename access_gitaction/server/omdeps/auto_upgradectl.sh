@@ -18,54 +18,58 @@ if [ $# -lt 2 ]; then
         exit
 fi
 scriptpath=${workdir}/om/package/script
+BaseDb_scriptpath=${workdir}/openGauss/output/script
 xmlpath=/data/om/cluster_1m0s_config.xml
+BaseDb_xmlpath=/data/om/Base_cluster_1m0s_config.xml
 username="autotest"
 password=$(cat ${xmlpath} | grep -w "password" | awk -F'"' '{print $4}')
 usergroup="dbgrp"
+BaseDb_envfilepath="/home/${username}/Base_env"
 envfilepath="/home/${username}/env"
 logfilesavepath=/data/om/log
 
-# upgradefilepath_om=${workdir}/openGauss/output/openGauss-$branch-CentOS-64bit-om.tar.gz
-# upgradefilepath_app=${workdir}/openGauss/output/openGauss-$branch-CentOS-64bit.tar.bz2
-# upgradefilepath_app_sha256=${workdir}/openGauss/output/openGauss-$branch-CentOS-64bit.sha256
-# package_upgrade=${workdir}/openGauss/output/upgrade_sql.tar.gz
-# package_upgrade_sha256=${workdir}/openGauss/output/upgrade_sql.sha256
 
 ## 20240808开始更新包名，旧版本门禁都要兼容
-upgradefilepath_om_old=${workdir}/openGauss/output/openGauss-$branch-CentOS-64bit-om.tar.gz
-upgradefilepath_om_new=${workdir}/openGauss/output/openGauss-OM-$branch-CentOS7-x86_64.tar.gz
+upgradefilepath_om_old=${workdir}/openGauss/output/openGauss-$branch-openEuler-64bit-om.tar.gz
+upgradefilepath_om_new=${workdir}/openGauss/output/openGauss-OM-$branch-openEuler20.03-x86_64.tar.gz
 is_pkg_new=0
-if [ -f "$package_path_om_old" ]; then
+if [ -f "$upgradefilepath_om_old" ]; then
         upgradefilepath_om=$upgradefilepath_om_old
 else
         upgradefilepath_om=$upgradefilepath_om_new
         is_pkg_new=1
 fi
 if [ "${is_pkg_new}" = "0" ]; then
-        upgradefilepath_app=${workdir}/openGauss/output/openGauss-$branch-CentOS-64bit.tar.bz2
-        upgradefilepath_app_sha256=${workdir}/openGauss/output/openGauss-$branch-CentOS-64bit.sha256
+        upgradefilepath_app=${workdir}/openGauss/output/openGauss-$branch-openEuler-64bit.tar.bz2
+        upgradefilepath_app_sha256=${workdir}/openGauss/output/openGauss-$branch-openEuler-64bit.sha256
 else
-        upgradefilepath_app=${workdir}/openGauss/output/openGauss-Server-$branch-CentOS7-x86_64.tar.gz
+        upgradefilepath_app=${workdir}/openGauss/output/openGauss-Server-$branch-openEuler20.03-x86_64.tar.gz
         if [ ! -f "$upgradefilepath_app" ]; then
-                upgradefilepath_app=${workdir}/openGauss/output/openGauss-Server-$branch-CentOS7-x86_64.tar.bz2
+                upgradefilepath_app=${workdir}/openGauss/output/openGauss-Server-$branch-openEuler20.03-x86_64.tar.bz2
         fi
-        upgradefilepath_app_sha256=${workdir}/openGauss/output/openGauss-Server-$branch-CentOS7-x86_64.sha256
+        upgradefilepath_app_sha256=${workdir}/openGauss/output/openGauss-Server-$branch-openEuler20.03-x86_64.sha256
 fi
 package_upgrade=${workdir}/openGauss/output/upgrade_sql.tar.gz
 package_upgrade_sha256=${workdir}/openGauss/output/upgrade_sql.sha256
 
 
-
 if [ "$gitcodeTargetBranch" == "2.0.0" ]; then
-        base_package_path=/data/om/openGauss-Package-base-2.0.0.tar.gz
+        base_package_path=/data/om/openGauss-2.0.0-openEuler-64bit-all.tar.gz
+elif [[ "$gitcodeTargetBranch"x = "master"x || "$gitcodeTargetBranch"x = "7.0.0"x ]]; then
+        base_package_path=/data/om/openGauss-All-6.0.0-openEuler20.03-x86_64.tar.gz
+elif [ "$gitcodeTargetBranch" == "7.0.0-RC2" ]; then
+        base_package_path=/data/om/openGauss-All-6.0.0-openEuler20.03-x86_64.tar.gz
+elif [ "$gitcodeTargetBranch" == "7.0.0-RC1" ]; then
+        base_package_path=/data/om/openGauss-All-6.0.0-openEuler20.03-x86_64.tar.gz
 else
-        base_package_path=/data/om/openGauss-Package-base-3.0.0.tar.gz
+        base_package_path=/data/om/openGauss-3.0.0-openEuler-64bit-all.tar.gz
 fi
 
 
-
 hostname=$(hostname)
-sed -i "s/slave-x86-0007/${hostname}/g" ${xmlpath}
+# sed -i "s/slave-x86-0007/${hostname}/g" ${xmlpath}
+sed -i "s/HOSTNAMETOEDIT/${hostname}/g" ${xmlpath}
+sed -i "s/HOSTNAMETOEDIT/${hostname}/g" ${BaseDb_xmlpath}
 
 shellfilepath=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
 # 用户校验
@@ -96,6 +100,18 @@ main() {
 
         if [ ! -e ${scriptpath} ]; then
                 echo -e "\033[31m 工具脚本路径不存在：${scriptpath} \033[0m"
+        fi
+
+        if [ ! -e ${BaseDb_xmlpath} ]; then
+                echo -e "\033[31m 配置文件XML不存在：${xmlpath}  \033[0m"
+        else
+                BaseDb_installpath=$(cat ${BaseDb_xmlpath} | grep name=\"gaussdbAppPath\")
+                BaseDb_installpath=${BaseDb_installpath#*/}
+                BaseDb_installpath=${BaseDb_installpath%cluster*}
+                echo "xml配置的安装路径：/$BaseDb_installpath"
+                if [[ -n ${BaseDb_installpath} && -e /${BaseDb_installpath} ]]; then
+                        rm -rf /${BaseDb_installpath}
+                fi
         fi
 
         if [ ! -e ${xmlpath} ]; then
@@ -183,7 +199,86 @@ confirmContinue() {
         fi
 }
 
-# 预安装
+# BaseDb预安装
+BaseDb_preinstall() {
+        logdir=$(logCheck gs_preinstall.log)
+        tar -xf ${workdir}/openGauss/output/*OM*.tar.gz -C ${workdir}/openGauss/output
+        tar -xf ${workdir}/openGauss/output/*om*.tar.gz -C ${workdir}/openGauss/output
+        echo "正在执行：${scriptpath}/gs_preinstall -U ${username} -G ${usergroup} -X ${BaseDb_xmlpath} --sep-env-file=${envfilepath}"
+        #spawn ${scriptpath}/gs_preinstall -U ${username} -G ${usergroup} -X ${xmlpath} --sep-env-file=${envfilepath}
+        expect -f $(dirname $0)/auto_preinstall.sh ${username} ${usergroup} ${BaseDb_xmlpath} ${BaseDb_envfilepath} ${BaseDb_scriptpath} ${password} | tee ${logdir}
+        preinstallresult=$?
+        preinstalllogcheck=$(cat ${logdir} | grep "Preinstallation succeeded")
+        if [[ ${preinstallresult} == 0 && -n ${preinstalllogcheck} ]]; then
+                echo -e "\033[32m 执行预安装操作成功 \033[0m"
+                source ${BaseDb_envfilepath}
+        else
+                echo -e "\033[31m 执行预安装操作失败，日志同步保存在${logdir} \033[0m"
+                echo -e "\033[31m 脚本即将退出 \033[0m"
+                # cp /home/OM/ssh/* ~/.ssh/
+                exit 1
+        fi
+}
+# BaseDb安装
+BaseDb_install() {
+        chmod -R 755 ${scriptpath}
+        chown -R ${username}:${usergroup} ${BaseDb_scriptpath}
+        logdir=$(logCheck gs_install.log)
+        echo " 正在执行：gs_install -X "
+        #expect -c "set timeout 400;
+        su - ${username} -c '
+                source $1
+                #$2/gs_install -X $3 | tee $4
+                expect -f $2/auto_install.sh $3 $4 $5 | tee $6
+        ' - ${BaseDb_envfilepath} ${shellfilepath} ${password} ${BaseDb_xmlpath} ${BaseDb_scriptpath} ${logdir}
+        #' - ${envfilepath} ${scriptpath} ${xmlpath} ${logdir}
+        #}"
+        installresult=$?
+        installlogcheck=$(cat ${logdir} | grep "Successfully installed application")
+        if [[ ${installresult} == 0 && -n ${installlogcheck} ]]; then
+                echo -e "\033[32m 执行安装操作成功 \033[0m"
+        else
+                echo -e "\033[31m 执行安装操作失败，日志同步保存在${logdir} \033[0m"
+                # cp /home/OM/ssh/* ~/.ssh/
+                exit 1
+        fi
+}
+#BaseDb启动
+BaseDb_startwithhostname() {
+        logdir=$(logCheck starthostname.log)
+        echo -e "\033[32m 正在执行start操作：gs_om -t start -h $(hostname) \033[0m"
+        su - ${username} -c'
+                source $1
+                gs_om -t start -h $(hostname) | tee $2
+        ' - ${BaseDb_envfilepath} ${logdir}
+        starthresult=$?
+        starthlogcheck=$(cat ${logdir} | grep "Successfully started")
+        if [[ ${starthresult} == 0 && -n "${starthlogcheck}" ]]; then
+                echo -e "\033[32m gs_om -t start -h $(hostname) 操作执行成功 \033[0m"
+        else
+                echo -e "\033[31m gs_om -t start -h $(hostname) 操作执行失败 \033[0m"
+                # cp /home/OM/ssh/* ~/.ssh/
+                exit 1
+        fi
+}
+#数据采集
+gs_upgradechk() {
+        echo "${branch}"
+        if [[ "${gitcodeTargetBranch}"x = "master"x || "$gitcodeTargetBranch"x = "7.0.0"x ]]; then
+                echo "开始进行数据采集"
+                output_pik=$(su ${username} -c '
+                source $1
+                output_pik=$(gs_upgradechk export -p 31057 )
+                echo "$output_pik"
+                code_path=$(echo "${output_pik}" | tail -n 1 | cut -d'\'':'\'' -f2 | tr -d '\''[:space:]'\'')
+                echo "${code_path}"
+' - ${BaseDb_envfilepath})
+                export code_path=$(echo "$output_pik" | tail -n 1 | cut -d':' -f2 | tr -d "'[:space:]")
+                echo "code_path: ${code_path}"
+        fi
+}
+
+# UpgradeDb预安装
 preinstall() {
         logdir=$(logCheck gs_preinstall.log)
         echo "正在执行：${scriptpath}/gs_preinstall -U ${username} -G ${usergroup} -X ${xmlpath} --sep-env-file=${envfilepath}"
@@ -201,7 +296,7 @@ preinstall() {
                 exit 1
         fi
 }
-# 安装
+# UpgradeDb安装
 install() {
         chmod -R 755 ${scriptpath}
         chown -R ${username}:${usergroup} ${scriptpath}
@@ -214,7 +309,6 @@ install() {
                 expect -f $2/auto_install.sh $3 $4 $5 | tee $6
         ' - ${envfilepath} ${shellfilepath} ${password} ${xmlpath} ${scriptpath} ${logdir}
         #' - ${envfilepath} ${scriptpath} ${xmlpath} ${logdir}
-        # eof {exit 0;}
         #}"
         installresult=$?
         installlogcheck=$(cat ${logdir} | grep "Successfully installed application")
@@ -226,7 +320,7 @@ install() {
                 exit 1
         fi
 }
-# 启动
+# UpgradeDb启动
 startwithhostname() {
         logdir=$(logCheck starthostname.log)
         echo -e "\033[32m 正在执行start操作：gs_om -t start -h $(hostname) \033[0m"
@@ -244,6 +338,7 @@ startwithhostname() {
                 exit 1
         fi
 }
+
 #升级
 upgradectl() {
         chmod 777 ${upgradefilepath_om}
@@ -368,6 +463,31 @@ upgradectl() {
         fi
 
 }
+#数据分析
+gs_upgradechk_anl() {
+        if [[ "${gitcodeTargetBranch}"x = "master"x || "$gitcodeTargetBranch"x = "7.0.0"x ]]; then
+               code_path2=$( su ${username} -c '
+                echo "开始进行数据分析"
+                source /home/autotest/env
+                output_anyl=$(gs_upgradechk verify -p 31011 -v ${code_path})
+                echo "$output_anyl"
+                code_path2=$(echo "${output_anyl}" | tail -n 1 | awk -F '\''：'\'' '\''{print $2}'\'' | tr -d '\''[:space:]'\'')
+                echo "${code_path2}"
+')
+        
+                echo "${code_path2}"
+                cp /usr1/opengaussautoinstall/cluster/gaussdb_log/autotest/om/upgrade_checker/results/*.md /data/om/result
+                cp /usr1/opengaussautoinstall/cluster/gaussdb_log/autotest/om/upgrade_checker/results/*.md /data/om/result2/
+                result=$(grep -l '成功' /data/om/result/V*.md)
+                if [ -n "$result" ]; then
+                        echo "元数据校验通过"
+                else
+                        echo "元数据校验失败"
+                        exit 1
+                fi
+                rm -rf /data/om/result/*
+        fi
+}
 # 卸载
 uninstall() {
         logdir=$(logCheck gs_uninstall.log)
@@ -407,15 +527,26 @@ postuninstall() {
 }
 
 main
-countDown "预安装"
+countDown "BaseDb预安装"
+BaseDb_preinstall
+countDown "BaseDb安装"
+BaseDb_install
+countDown "BaseDb数据库启动 指定hostname"
+BaseDb_startwithhostname
+countDown "BaseDb开始进行元数据校验-数据采集"
+gs_upgradechk
+countDown "UpgradeDb预安装"
 preinstall
-countDown "安装"
+countDown "UpgradeDb安装"
 install
-countDown "数据库启动 指定hostname"
+countDown "UpgradeDb数据库启动 指定hostname"
 startwithhostname
 countDown "集群升级"
 upgradectl
+countDown "开始进行元数据校验-数据分析"
+gs_upgradechk_anl
 countDown "数据库卸载"
 uninstall
 countDown "环境清理"
 postuninstall
+
