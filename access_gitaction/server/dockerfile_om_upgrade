@@ -1,0 +1,44 @@
+FROM openeuler/openeuler:20.03-lts
+
+##COPY openGauss-third_party_binarylibs_openEuler_x86_64.tar.gz .
+COPY cmake-3.19.5-Linux-x86_64.tar.gz .
+COPY cmake-3.19.5-Linux-aarch64.tar.gz .
+COPY openEuler_aarch64.repo /etc/yum.repos.d/openEuler_aarch64.repo
+
+COPY entrypoint_om_upgrade.sh .
+
+COPY loop.sh .
+
+ENV LANG en_US.utf8
+
+RUN set -eux; \
+    yum install -y lz4 lz4-devel bzip2 bzip2-devel curl libaio libaio-devel iputils flex bison ncurses-devel expect glibc-devel patch dkms diffutils glibc-locale-source shadow readline-devel wget unixODBC-devel numactl-devel \
+    which git libtool-ltdl-devel autoconf libtool python3 python3-devel python python-devel openssl-devel gcc-c++ make hostname iproute dos2unix libedit-devel libxml2-devel java-1.8.0-openjdk-devel openblas-devel binutils --nogpgcheck && \
+    mkdir -p /usr1/build/workspace/ && \
+    groupadd tester2 && useradd -g tester2 -m tester2 && \
+    ln -s /usr/lib/dkms/lsb_release /usr/bin/lsb_release && \
+    ## mv openGauss-third_party_binarylibs_openEuler_x86_64.tar.gz /usr1/build/workspace/openGauss-third_party_binarylibs.tar.gz && \
+    mkdir /usr1/build/workspace/dependency && \
+    mkdir -p /data/om/ && mkdir -p /data/om/result/ && mkdir -p /data/om/result2/ && \
+    localedef -c -i zh_CN -f GBK zh_CN.GBK && \
+    touch /usr1/build/workspace/build.log
+    
+COPY loop.sh /usr/local/bin/
+COPY entrypoint_om_upgrade.sh /usr/local/bin/
+RUN chmod 755 /usr/local/bin/entrypoint_om_upgrade.sh
+RUN chmod 755 /usr/local/bin/loop.sh
+
+COPY omdeps/auto_install.sh /data/om/
+COPY omdeps/auto_postuninstall.sh /data/om/
+COPY omdeps/auto_preinstall.sh /data/om/
+COPY omdeps/auto_upgradectl.sh /data/om/
+COPY omdeps/automated-test.sh /data/om/
+COPY omdeps/cluster_1m0s_config.xml /data/om/
+COPY omdeps/pre_compile.sh /data/om/
+COPY omdeps/Base_cluster_1m0s_config.xml /data/om/
+COPY omdeps/useradd.sh /data/om/
+RUN chmod -R 755 /data
+
+ENTRYPOINT ["/usr/local/bin/loop.sh"]
+
+CMD ["tail -f /usr1/build/workspace/build.log"]

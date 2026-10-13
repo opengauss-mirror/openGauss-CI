@@ -138,12 +138,12 @@ function auto_(){
         expect {
             "yes/no" { send "yes\n"; exp_continue }
             "denied" { exit 1; }
-            "*assword:" { send "Huawei@123\n"; exp_continue }
+            "*assword:" { send "Test@123\n"; exp_continue }
             "anger*\n*yes*" { send "yes\n"; exp_continue }
             "Pdb" { interact }
-            "pass phrase for*:" { send "Huawei@123\n"; exp_continue  }
-            "passphrase" { send "Huawei@123\n"; exp_continue  }
-            "database:" { send "Huawei@123\n"; exp_continue  }
+            "pass phrase for*:" { send "Test@123\n"; exp_continue  }
+            "passphrase" { send "Test@123\n"; exp_continue  }
+            "database:" { send "Test@123\n"; exp_continue  }
         }
         #expect eof
 EOF
@@ -440,12 +440,12 @@ su - ${user}<<EOF
             expect {
                 "yes/no" { send "yes\n"; exp_continue }
                 "denied" { exit 1; }
-                "*assword:" { send "openGauss1#2_3\\\$00\n"; exp_continue }
+                "*assword:" { send "openGauss@123\n"; exp_continue }
                 "anger*\n*yes*" { send "yes\n"; exp_continue }
                 "Pdb" { interact }
-                "pass phrase for*:" { send "openGauss1#2_3\\\$00\n"; exp_continue  }
-                "passphrase" { send "openGauss1#2_3\\\$00\n"; exp_continue  }
-                "database:" { send "Huawei@123\n"; exp_continue  }
+                "pass phrase for*:" { send "openGauss@123\n"; exp_continue  }
+                "passphrase" { send "openGauss@123\n"; exp_continue  }
+                "database:" { send "Test@123\n"; exp_continue  }
             }
 EOD
     }
@@ -477,7 +477,7 @@ create_user()
         #创建用户
         echo " =================  create tpcc user    ================="
         dsscmd -v
-        gsql -d postgres -p ${db_port} -r -c "create database tpcc;create user tpcc_user with password 'Huawei@123';grant all privileges to tpcc_user;"
+        gsql -d postgres -p ${db_port} -r -c "create database tpcc;create user tpcc_user with password 'Test@123';grant all privileges to tpcc_user;"
         cm_ctl query -Cvipd; cm_ctl stop; cm_ctl start
 EOF
 }
