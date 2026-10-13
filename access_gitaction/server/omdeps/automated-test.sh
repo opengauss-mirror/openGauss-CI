@@ -59,10 +59,6 @@ hostname=$(hostname)
 ip=$(hostname -i | awk '{print $1}')
 echo "$ip"
 main() {
-
-        # mkdir /data/om/ssh
-        # cp  ~/.ssh/* /data/om/ssh
-        #sed -i "s/ip/${ip}/g" /data/om/cluster_1m0s_config.xml
         sed -i "s/HOSTNAMETOEDIT/${hostname}/g" /data/om/cluster_1m0s_config.xml
 
         if [ ! -e ${xmlpath} ]; then

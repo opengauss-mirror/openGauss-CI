@@ -253,8 +253,7 @@ BaseDb_install() {
                 #$2/gs_install -X $3 | tee $4
                 expect -f $2/auto_install.sh $3 $4 $5 | tee $6
         ' - ${BaseDb_envfilepath} ${shellfilepath} ${password} ${BaseDb_xmlpath} ${BaseDb_scriptpath} ${logdir}
-        #' - ${envfilepath} ${scriptpath} ${xmlpath} ${logdir}
-        #}"
+
         installresult=$?
         installlogcheck=$(cat ${logdir} | grep "Successfully installed application")
         if [[ ${installresult} == 0 && -n ${installlogcheck} ]]; then
@@ -339,8 +338,7 @@ install() {
                 #$2/gs_install -X $3 | tee $4
                 expect -f $2/auto_install.sh $3 $4 $5 | tee $6
         ' - ${envfilepath} ${shellfilepath} ${password} ${xmlpath} ${scriptpath} ${logdir}
-        #' - ${envfilepath} ${scriptpath} ${xmlpath} ${logdir}
-        #}"
+
         installresult=$?
         installlogcheck=$(cat ${logdir} | grep "Successfully installed application")
         if [[ ${installresult} == 0 && -n ${installlogcheck} ]]; then
@@ -375,15 +373,6 @@ upgradectl() {
         chmod 777 ${upgradefilepath_om}
         chmod 777 ${upgradefilepath_app}
         chmod 777 ${upgradefilepath_app_sha256}
-        # echo "准备停止集群"
-        # logdir=`logCheck stopdb.log`
-        # echo -e "\033[32m 正在执行stop操作：gs_om -t stop \033[0m"
-        # su - ${username} -c'
-        #         source $1
-        #         gs_om -t stop | tee $2
-        # ' - ${envfilepath} ${logdir}
-        # stopdbresult=$?
-        # stoplogcheck=$(cat ${logdir} | grep "Successfully stopped cluster")
 
         if [[ $? == 0 ]]; then
                 echo "准备进行升级包解压"
