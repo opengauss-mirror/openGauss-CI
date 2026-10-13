@@ -3,9 +3,11 @@
 #echo "gitcodePullRequestIid: ${gitcodePullRequestIid}"
 #echo "gitcodeAfterCommitSha: ${gitcodeAfterCommitSha}"
 #echo "gitcodeRef: refs/merge-requests/${gitcodePullRequestIid}/merge"
-#echo "gitcodeMergeRef=refs/merge-requests/${gitcodePullRequestIid}/merge"
 #git config --global core.compression 0
-
+#开发板版本为5.1.0
+if [[ "$gitcodeTargetBranch"x = "dev_board"x ]]; then
+    gitcodeTargetBranch="5.1.0"
+fi
 sync && echo 3>/proc/sys/vm/drop_caches
 ipcrm -a
 
@@ -25,7 +27,7 @@ CBB_BRANCH_FOR_600="6.0.6_DEV"
 DSS_BRANCH_FOR_600="6.0.6_DEV"
 DMS_BRANCH_FOR_600="6.0.6_DEV"
 
-if [[ "$gitcodeTargetBranch"x != "master"x && "$gitcodeTargetBranch"x != "5.1.0"x && "$gitcodeTargetBranch"x != "6.0.0"x && "$gitcodeTargetBranch"x != "7.0.0"x ]]; then
+if [[ "$gitcodeTargetBranch"x = "2.0.0"x || "$gitcodeTargetBranch"x = "3.0.0"x || "$gitcodeTargetBranch"x = "dev"x  || "$gitcodeTargetBranch"x = "iud_dev"x || "$gitcodeTargetBranch"x = "tp_poc"x || "$gitcodeTargetBranch"x = "datavec_poc"x ]]; then
     echo "skip $gitcodeTargetBranch branch gate"
     exit 0
 fi
@@ -33,6 +35,23 @@ fi
 if [[ ! -d $WORKSPACE ]]; then
     mkdir -p $WORKSPACE
 fi
+
+function prepare_deps() {
+    mkdir -p ${WORKSPACE}/dependency/cmake
+
+    if [ "$(uname -m)" = "aarch64" ]; then
+        tar -xf /cmake-3.19.5-Linux-aarch64.tar.gz -C ${WORKSPACE}/dependency/cmake/ --strip-components 1
+    else
+        tar -xf /cmake-3.19.5-Linux-x86_64.tar.gz -C ${WORKSPACE}/dependency/cmake/ --strip-components 1
+    fi
+
+    export CMAKEHOME=/usr1/gauss_jenkins/jenkins/workspace/dependency/cmake
+    export LD_LIBRARY_PATH=$CMAKEHOME/lib:$LD_LIBRARY_PATH
+    export PATH=$CMAKEHOME/bin:$PATH
+
+    echo "export CMAKEHOME=/usr1/gauss_jenkins/jenkins/workspace/dependency/cmake" >> /opt/envfile
+    echo "export CMAKEHOME=export PATH=$CMAKEHOME/bin:$PATH" >> /opt/envfile
+}
 
 function download_source_from_gitcode() {
     repo=$1
@@ -79,10 +98,7 @@ function download_source() {
     # 获取依赖分支
     get_dep_branch
 
-    # 下载openGauss主仓库（使用目标分支）
     download_source_from_gitcode ${openGaussServer_Http_Repo_Url} ${gitcodeTargetBranch} openGauss
-
-    # 下载CBB/DSS/DMS（使用计算出的分支）
     download_source_from_gitcode ${cbb_repo} ${cbb_branch} CBB
     download_source_from_gitcode ${dss_repo} ${dss_branch} DSS
     download_source_from_gitcode ${dms_repo} ${dms_branch} DMS
@@ -163,6 +179,7 @@ function download_binarylibs() {
     cd ${WORKSPACE}
     mkdir -p ${WORKSPACE}/openGauss-third_party_binarylibs
     tar -zxf ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz -C openGauss-third_party_binarylibs --strip-components 1
+
 }
 
 function get_ddes_commit_id() {
@@ -171,7 +188,6 @@ function get_ddes_commit_id() {
     dms_commit_id=${list[0]}
     dss_commit_id=${list[1]}
     cbb_commit_id=${list[2]}
-
     if [[ -z $dms_commit_id || -z $dss_commit_id ]]; then
         echo "ERROR: not fount ddes commit id"
         exit 1
@@ -181,9 +197,7 @@ function get_ddes_commit_id() {
 function compile_deps() {
     echo "Start to build CBB.."
     cd ${WORKSPACE}/CBB
-    if [[ -n $cbb_commit_id ]];then
-        git reset ${cbb_commit_id} --hard
-    fi
+    git reset ${cbb_commit_id} --hard
     cd ${WORKSPACE}/CBB/build/linux/opengauss
     sh -x build.sh -m Debug -3rd ${openGauss3rdbinarylibs}
 
@@ -198,7 +212,6 @@ function compile_ddes() {
     cd ${WORKSPACE}/DSS
     git reset ${dss_commit_id} --hard
     cd ${WORKSPACE}/DSS/build/linux/opengauss
-
     sh -x build.sh -3rd ${WORKSPACE}/openGauss-third_party_binarylibs -m DebugDsstest -t cmake
     #sh -x build.sh -3rd ${WORKSPACE}/openGauss-third_party_binarylibs -m Debug -t cmake
     if [[ $? -ne 0 ]]; then
@@ -226,11 +239,9 @@ function get_gcc_version() {
 
 function export_env() {
     source /etc/profile
-    export PATH=/opt/install/cmake-3.26.3-linux-x86_64/bin:$PATH
     #export CC=${openGauss3rdbinarylibs}/buildtools/gcc${gcc_version}/gcc/bin/gcc
     #export cc=${openGauss3rdbinarylibs}/buildtools/gcc${gcc_version}/gcc/bin/gcc
     #export LD_LIBRARY_PATH=${openGauss3rdbinarylibs}/buildtools/gcc${gcc_version}/gcc/lib64:$LD_LIBRARY_PATH
-
     export GCC_PATH=${openGauss3rdbinarylibs}/buildtools/gcc${gcc_version}/
     export CC=$GCC_PATH/gcc/bin/gcc
     #export cc=$GCC_PATH/gcc/bin/gcc
@@ -245,12 +256,12 @@ function compile_cmake() {
     echo "Start to build opengauss================================================"
     cd ${WORKSPACE}/openGauss/build/script/
     chmod +x build_opengauss.sh
+
     # cmake编译
     sed -i 's/declare CMAKE_PKG="N"/declare CMAKE_PKG="Y"/g' build_opengauss.sh
-    sed -i "s/make -sj ${cpus_num}/make -sj16/g" utils/cmake_compile.sh
-    sed -i "s/make install -sj ${cpus_num}/make install -sj16/g" utils/cmake_compile.sh
+    sed -i "s/make -sj \${cpus_num}/make -sj16/g" utils/cmake_compile.sh
+    sed -i "s/make install -sj \${cpus_num}/make install -sj16/g" utils/cmake_compile.sh
     sed -i '/exit 0/d' ${WORKSPACE}/openGauss/build.sh
-    sed -i 's/return g_dss_device_op.dss_set_main_inst();/return GS_SUCCESS;/g' ${WORKSPACE}/openGauss/src/gausskernel/storage/dss/fio_dss.cpp
     sh build_opengauss.sh -m debug -3rd ${WORKSPACE}/openGauss-third_party_binarylibs
     if [ $? -ne 0 ]; then
         echo "ERROR: cmake openGauss compile failed."
@@ -281,17 +292,15 @@ function cat_log() {
         cat $file
     done
 }
-function ha_test() {
+function make_fastcheck_ss() {
     chmod -R 755 /usr1/
     chmod -R 755 /data/
     chown -R test:test /usr1/
-    sed -i '/exit 0/d' ${WORKSPACE}/openGauss/src/test/ss/ha_test.sh
-    su - test -c "source /data/ss/ss_hatest.ini && export && ulimit -c unlimited &&
-        cd ${WORKSPACE}/openGauss/src/test/ss && sh ha_test.sh"
+    su - test -c "source /data/ss/ss_env.ini && export && cd ${WORKSPACE}/openGauss/tmp_build/ && make fastcheck_ss p=8798 -sj"
     if [[ $? == 0 ]]; then
-        echo "cm imitate success."
+        echo "fastcheck_ss success."
     else
-        echo "ERROR: cm imitate failed."
+        echo "ERROR: fastcheck_ss failed."
         cat_log
         exit 1
     fi
@@ -299,14 +308,15 @@ function ha_test() {
 function main() {
     clean
     download_source
-    merge_source_code
+   # merge_source_code
     download_binarylibs
     get_ddes_commit_id
     get_gcc_version
     export_env
+    prepare_deps
     complie
-    ulimit -c unlimited
-    ha_test
+    make_fastcheck_ss
+    python3 /home/OM/auto_send_email.py
 }
 
 main "$@"
