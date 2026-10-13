@@ -268,7 +268,7 @@ gs_upgradechk() {
                 echo "开始进行数据采集"
                 output_pik=$(su ${username} -c '
                 source $1
-                output_pik=$(gs_upgradechk export -p 31057 )
+                output_pik=$(gs_upgradechk export -p 33000 )
                 echo "$output_pik"
                 code_path=$(echo "${output_pik}" | tail -n 1 | cut -d'\'':'\'' -f2 | tr -d '\''[:space:]'\'')
                 echo "${code_path}"
@@ -469,7 +469,7 @@ gs_upgradechk_anl() {
                code_path2=$( su ${username} -c '
                 echo "开始进行数据分析"
                 source /home/autotest/env
-                output_anyl=$(gs_upgradechk verify -p 31011 -v ${code_path})
+                output_anyl=$(gs_upgradechk verify -p 32000 -v ${code_path})
                 echo "$output_anyl"
                 code_path2=$(echo "${output_anyl}" | tail -n 1 | awk -F '\''：'\'' '\''{print $2}'\'' | tr -d '\''[:space:]'\'')
                 echo "${code_path2}"
