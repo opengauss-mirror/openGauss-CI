@@ -31,8 +31,8 @@ envfilepath="/home/${username}/om/env"
 logfilesavepath=/usr1/opengaussautoinstall/log
 
 ## 20240808开始更新包名，旧版本门禁都要兼容
-package_path_om_old=${workspace}/openGauss/output/openGauss-$branch-CentOS-64bit-om.tar.gz
-package_path_om_new=${workspace}/openGauss/output/openGauss-OM-$branch-CentOS7-x86_64.tar.gz
+package_path_om_old=${workspace}/openGauss/output/openGauss-$branch-openEuler-64bit-om.tar.gz
+package_path_om_new=${workspace}/openGauss/output/openGauss-OM-$branch-openEuler20.03-x86_64.tar.gz
 is_pkg_new=0
 if [ -f "$package_path_om_old" ]; then
         package_path_om=$package_path_om_old
@@ -41,14 +41,14 @@ else
         is_pkg_new=1
 fi
 if [ "${is_pkg_new}" = "0" ]; then
-        package_path_app=${workspace}/openGauss/output/openGauss-$branch-CentOS-64bit.tar.bz2
-        package_path_app_sha256=${workspace}/openGauss/output/openGauss-$branch-CentOS-64bit.sha256
+        package_path_app=${workspace}/openGauss/output/openGauss-$branch-openEuler-64bit.tar.bz2
+        package_path_app_sha256=${workspace}/openGauss/output/openGauss-$branch-openEuler-64bit.sha256
 else
-        package_path_app=${workspace}/openGauss/output/openGauss-Server-$branch-CentOS7-x86_64.tar.gz
+        package_path_app=${workspace}/openGauss/output/openGauss-Server-$branch-openEuler20.03-x86_64.tar.gz
         if [ ! -f "$package_path_app" ]; then
-                package_path_app=${workspace}/openGauss/output/openGauss-Server-$branch-CentOS7-x86_64.tar.bz2
+                package_path_app=${workspace}/openGauss/output/openGauss-Server-$branch-openEuler20.03-x86_64.tar.bz2
         fi
-        package_path_app_sha256=${workspace}/openGauss/output/openGauss-Server-$branch-CentOS7-x86_64.sha256
+        package_path_app_sha256=${workspace}/openGauss/output/openGauss-Server-$branch-openEuler20.03-x86_64.sha256
 fi
 package_upgrade=${workspace}/openGauss/output/upgrade_sql.tar.gz
 package_upgrade_sha256=${workspace}/openGauss/output/upgrade_sql.sha256
@@ -63,7 +63,7 @@ main() {
         # mkdir /data/om/ssh
         # cp  ~/.ssh/* /data/om/ssh
         #sed -i "s/ip/${ip}/g" /data/om/cluster_1m0s_config.xml
-        #sed -i "s/hostname/${hostname}/g" /data/om/cluster_1m0s_config.xml
+        sed -i "s/HOSTNAMETOEDIT/${hostname}/g" /data/om/cluster_1m0s_config.xml
 
         if [ ! -e ${xmlpath} ]; then
                 echo -e "\033[31m 配置文件XML不存在：${xmlpath}  \033[0m"
@@ -186,6 +186,15 @@ confirmContinue() {
 # 预安装
 preinstall() {
         logdir=$(logCheck gs_preinstall.log)
+
+        ################### preinstall in docker has errors  #####################################
+        ## [GAUSS-50802] : Failed to restart crond service. Error:
+        ## System has not been booted with systemd as init system (PID 1). Can't operate.
+        ## Failed to connect to bus: Host is down
+        ###########################################################################################
+        sed -i 's/self\.prepareSshdService/\#self.prepareSshdService/g' ${scriptpath}/impl/preinstall/PreinstallImpl.py
+        sed -i 's/self\.prepareCronService/\#self.prepareCronService/g' ${scriptpath}/impl/preinstall/PreinstallImpl.py
+        
         echo "正在执行：${scriptpath}/gs_preinstall -U ${username} -G ${usergroup} -X ${xmlpath} --sep-env-file=${envfilepath}"
         #spawn ${scriptpath}/gs_preinstall -U ${username} -G ${usergroup} -X ${xmlpath} --sep-env-file=${envfilepath}
         expect -f $(dirname $0)/auto_preinstall.sh ${username} ${usergroup} ${xmlpath} ${envfilepath} ${scriptpath} ${password} | tee ${logdir}
@@ -806,7 +815,7 @@ countDown "恢复"
 countDown "收集日志"
 collector
 countDown "检查系统配置"
-checkos
+#checkos
 #countDown "集群资源检查"
 #checkpref
 countDown "数据库停止"

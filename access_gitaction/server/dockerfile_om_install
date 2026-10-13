@@ -12,7 +12,7 @@ COPY loop.sh .
 ENV LANG en_US.utf8
 
 RUN set -eux; \
-    yum install -y lz4 lz4-devel bzip2 bzip2-devel curl libaio libaio-devel flex bison ncurses-devel glibc-devel patch dkms diffutils glibc-locale-source shadow readline-devel wget unixODBC-devel \
+    yum install -y lz4 lz4-devel bzip2 bzip2-devel curl libaio libaio-devel iputils flex bison ncurses-devel expect glibc-devel patch dkms diffutils glibc-locale-source shadow readline-devel wget unixODBC-devel numactl-devel \
     which git libtool-ltdl-devel autoconf libtool python3 python3-devel python python-devel openssl-devel gcc-c++ make hostname iproute dos2unix libedit-devel libxml2-devel java-1.8.0-openjdk-devel openblas-devel binutils --nogpgcheck && \
     mkdir -p /usr1/build/workspace/ && \
     groupadd tester2 && useradd -g tester2 -m tester2 && \
