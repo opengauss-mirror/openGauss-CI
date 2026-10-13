@@ -84,8 +84,6 @@ checkUser() {
 
 main() {
         sync && echo 3 >/proc/sys/vm/drop_caches
-        # sed -i "s/ip/${ip}/g" /home/OM/cluster_1m0s_config.xml
-        # sed -i "s/hostname/${hostname}/g" /home/OM/cluster_1m0s_config.xml
 
         if [ -e ${workdir}/om/package/ ]; then
                 rm -rf ${workdir}/om/package/*
@@ -96,7 +94,16 @@ main() {
 
         tar -zxf ${base_package_path} -C ${workdir}/om/package/
 
+        cd ${workdir}/om/package
+        if [ "${is_pkg_new}" = "0" ]; then
+                tar -xf `ls openGauss-*om*.tar.gz`
+        else
+                tar -xf `ls openGauss-OM-*.tar.gz`
+        fi
+        
+
         chmod -R 777 ${workdir}/om
+
 
         if [ ! -e ${scriptpath} ]; then
                 echo -e "\033[31m 工具脚本路径不存在：${scriptpath} \033[0m"
@@ -202,8 +209,23 @@ confirmContinue() {
 # BaseDb预安装
 BaseDb_preinstall() {
         logdir=$(logCheck gs_preinstall.log)
-        tar -xf ${workdir}/openGauss/output/*OM*.tar.gz -C ${workdir}/openGauss/output
-        tar -xf ${workdir}/openGauss/output/*om*.tar.gz -C ${workdir}/openGauss/output
+        if [ "${is_pkg_new}" = "0" ]; then
+                tar -xf ${workdir}/openGauss/output/*om*.tar.gz -C ${workdir}/openGauss/output
+                
+        else
+                tar -xf ${workdir}/openGauss/output/*OM*.tar.gz -C ${workdir}/openGauss/output
+        fi
+        cd /data/om
+        
+
+        ################### preinstall in docker has errors  #####################################
+        ## [GAUSS-50802] : Failed to restart crond service. Error:
+        ## System has not been booted with systemd as init system (PID 1). Can't operate.
+        ## Failed to connect to bus: Host is down
+        ###########################################################################################
+        sed -i 's/self\.prepareSshdService/\#self.prepareSshdService/g' ${BaseDb_scriptpath}/impl/preinstall/PreinstallImpl.py
+        sed -i 's/self\.prepareCronService/\#self.prepareCronService/g' ${BaseDb_scriptpath}/impl/preinstall/PreinstallImpl.py
+
         echo "正在执行：${scriptpath}/gs_preinstall -U ${username} -G ${usergroup} -X ${BaseDb_xmlpath} --sep-env-file=${envfilepath}"
         #spawn ${scriptpath}/gs_preinstall -U ${username} -G ${usergroup} -X ${xmlpath} --sep-env-file=${envfilepath}
         expect -f $(dirname $0)/auto_preinstall.sh ${username} ${usergroup} ${BaseDb_xmlpath} ${BaseDb_envfilepath} ${BaseDb_scriptpath} ${password} | tee ${logdir}
@@ -493,7 +515,7 @@ gs_upgradechk_anl() {
 ')
         
                 echo "${code_path2}"
-                cp /usr1/opengaussautoinstall/cluster/gaussdb_log/autotest/om/upgrade_checker/results/*.md /data/om/result
+                cp /usr1/opengaussautoinstall/cluster/gaussdb_log/autotest/om/upgrade_checker/results/*.md /data/om/result/
                 cp /usr1/opengaussautoinstall/cluster/gaussdb_log/autotest/om/upgrade_checker/results/*.md /data/om/result2/
                 result=$(grep -l '成功' /data/om/result/V*.md)
                 if [ -n "$result" ]; then
@@ -566,4 +588,3 @@ countDown "数据库卸载"
 uninstall
 countDown "环境清理"
 postuninstall
-

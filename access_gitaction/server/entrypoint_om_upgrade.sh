@@ -36,6 +36,23 @@ if [[ "$gitcodeTargetBranch"x = "dev10"x || "$gitcodeTargetBranch"x = "glt"x || 
     exit 0
 fi
 
+function prepare_deps() {
+    mkdir -p ${WORKSPACE}/dependency/cmake
+
+    if [ "$(uname -m)" = "aarch64" ]; then
+        tar -xf /cmake-3.19.5-Linux-aarch64.tar.gz -C ${WORKSPACE}/dependency/cmake/ --strip-components 1
+    else
+        tar -xf /cmake-3.19.5-Linux-x86_64.tar.gz -C ${WORKSPACE}/dependency/cmake/ --strip-components 1
+    fi
+
+    export CMAKEHOME=/usr1/build/workspace/dependency/cmake
+    export LD_LIBRARY_PATH=$CMAKEHOME/lib:$LD_LIBRARY_PATH
+    export PATH=$CMAKEHOME/bin:$PATH
+
+    echo "export CMAKEHOME=/usr1/build/workspace/dependency/cmake" >> /opt/envfile
+    echo "export CMAKEHOME=export PATH=$CMAKEHOME/bin:$PATH" >> /opt/envfile
+}
+
 function download_source_from_gitcode() {
     repo=$1
     branch=$2
@@ -172,8 +189,7 @@ function download_basepkg() {
             base_package_path=openGauss-3.0.0-openEuler-64bit-all.tar.gz
     fi
 
-    wget ftp://192.168.0.9/3rd/ombase/${base_package_path}.tar.gz
-
+    wget ftp://192.168.0.9/3rd/ombase/${base_package_path} -q
 }
 
 function get_gcc_version() {
@@ -274,6 +290,7 @@ function main() {
     download_binarylibs
     get_gcc_version
     export_env
+    prepare_deps
     pkg
     download_basepkg
     install_upgrade
