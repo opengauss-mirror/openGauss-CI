@@ -281,6 +281,15 @@ gs_upgradechk() {
 # UpgradeDb预安装
 preinstall() {
         logdir=$(logCheck gs_preinstall.log)
+
+        ################### preinstall in docker has errors  #####################################
+        ## [GAUSS-50802] : Failed to restart crond service. Error:
+        ## System has not been booted with systemd as init system (PID 1). Can't operate.
+        ## Failed to connect to bus: Host is down
+        ###########################################################################################
+        sed -i 's/self\.prepareSshdService/\#self.prepareSshdService/g' ${scriptpath}/impl/preinstall/PreinstallImpl.py
+        sed -i 's/self\.prepareCronService/\#self.prepareCronService/g' ${scriptpath}/impl/preinstall/PreinstallImpl.py
+
         echo "正在执行：${scriptpath}/gs_preinstall -U ${username} -G ${usergroup} -X ${xmlpath} --sep-env-file=${envfilepath}"
         #spawn ${scriptpath}/gs_preinstall -U ${username} -G ${usergroup} -X ${xmlpath} --sep-env-file=${envfilepath}
         expect -f $(dirname $0)/auto_preinstall.sh ${username} ${usergroup} ${xmlpath} ${envfilepath} ${scriptpath} ${password} | tee ${logdir}
@@ -369,6 +378,14 @@ upgradectl() {
                         echo -e "\033[32m 准备执行预安装操作...... \033[0m"
                         echo -e "\033[32m 正在运行：${scriptpath}/gs_preinstall -U ${username} -G ${usergroup} -X ${xmlpath} --sep-env-file=${envfilepath};\033[0m"
                         logdir=$(logCheck gs_preinstall1.log)
+
+                        ################### preinstall in docker has errors  #####################################
+                        ## [GAUSS-50802] : Failed to restart crond service. Error:
+                        ## System has not been booted with systemd as init system (PID 1). Can't operate.
+                        ## Failed to connect to bus: Host is down
+                        ###########################################################################################
+                        sed -i 's/self\.prepareSshdService/\#self.prepareSshdService/g' ${scriptpath}/impl/preinstall/PreinstallImpl.py
+                        sed -i 's/self\.prepareCronService/\#self.prepareCronService/g' ${scriptpath}/impl/preinstall/PreinstallImpl.py
 
                         ### 升级回滚
                         echo "######################################### 升级回滚检查 #####################################################"

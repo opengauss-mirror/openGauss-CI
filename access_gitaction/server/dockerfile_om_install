@@ -24,8 +24,8 @@ RUN set -eux; \
     touch /usr1/build/workspace/build.log
     
 COPY loop.sh /usr/local/bin/
-COPY entrypoint_llt.sh /usr/local/bin/
-RUN chmod 755 /usr/local/bin/entrypoint_llt.sh
+COPY entrypoint_om_install.sh /usr/local/bin/
+RUN chmod 755 /usr/local/bin/entrypoint_om_install.sh
 RUN chmod 755 /usr/local/bin/loop.sh
 
 COPY omdeps/auto_install.sh /data/om/
