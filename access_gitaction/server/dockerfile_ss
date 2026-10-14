@@ -4,8 +4,8 @@ FROM openeuler/openeuler:20.03-lts
 COPY cmake-3.19.5-Linux-x86_64.tar.gz .
 COPY cmake-3.19.5-Linux-aarch64.tar.gz .
 COPY openEuler_aarch64.repo /etc/yum.repos.d/openEuler_aarch64.repo
-COPY llt_ss.sh .
-COPY llt_ss_hatest.sh .
+COPY entrypoint_ss.sh .
+COPY entrypoint_ss_hatest.sh .
 COPY loop.sh .
 
 ENV LANG en_US.utf8
@@ -14,23 +14,22 @@ RUN set -eux; \
     yum install -y lz4 lz4-devel bzip2 bzip2-devel curl libaio libaio-devel flex bison ncurses-devel glibc-devel patch dkms diffutils glibc-locale-source shadow readline-devel wget unixODBC-devel \
     which git libtool-ltdl-devel autoconf libtool python3 python3-devel python python-devel openssl-devel gcc-c++ make hostname iproute dos2unix libedit-devel libxml2-devel java-1.8.0-openjdk-devel openblas-devel binutils --nogpgcheck && \
     mkdir -p /usr1/build/workspace/ && \
-    groupadd tester2 && useradd -g tester2 -m tester2 && \
+    groupadd test && useradd -g test -m test && \
     ln -s /usr/lib/dkms/lsb_release /usr/bin/lsb_release && \
     ## mv openGauss-third_party_binarylibs_openEuler_x86_64.tar.gz /usr1/build/workspace/openGauss-third_party_binarylibs.tar.gz && \
     mkdir /usr1/build/workspace/dependency && \
-    mkdir -p /data/llt/PrivateBuild_tools/ && mkdir -p /data/config/ && mkdir -p /data/llt/PrivateBuild_tools/function && \
+    mkdir -p /data/ss/ && mkdir -p /data/config/ && \
     localedef -c -i zh_CN -f GBK zh_CN.GBK && \
     touch /usr1/build/workspace/build.log
 
 COPY loop.sh /usr/local/bin/
-COPY llt_ss.sh /usr/local/bin/
-COPY llt_ss_hatest.sh /usr/local/bin/
+COPY entrypoint_ss.sh /usr/local/bin/
+COPY entrypoint_ss_hatest.sh /usr/local/bin/
 
-COPY serverdeps/config_cmake_x86.ini /data/llt/PrivateBuild_tools/
-COPY serverdeps/config_cmake_arm.ini /data/llt/PrivateBuild_tools/
-COPY serverdeps/config.ini /data/llt/PrivateBuild_tools/
-RUN chmod 755 /usr/local/bin/llt_ss.sh
-RUN chmod 755 /usr/local/bin/llt_ss_hatest.sh
+COPY serverdeps/ss_env.ini /data/ss/
+COPY serverdeps/ss_hatest.ini /data/ss/
+RUN chmod 755 /usr/local/bin/entrypoint_ss.sh
+RUN chmod 755 /usr/local/bin/entrypoint_ss_hatest.sh
 RUN chmod 755 /usr/local/bin/loop.sh
 
 COPY serverdeps/config_gcc7.ini /data/config/

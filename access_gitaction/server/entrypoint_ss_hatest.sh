@@ -298,6 +298,7 @@ function cat_log() {
         cat $file
     done
 }
+
 function ha_test() {
     chmod -R 755 /usr1/
     chmod -R 755 /data/
@@ -313,6 +314,7 @@ function ha_test() {
         exit 1
     fi
 }
+
 function main() {
     clean
     download_source
