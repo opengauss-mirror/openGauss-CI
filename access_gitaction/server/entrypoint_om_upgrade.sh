@@ -2,8 +2,8 @@
 
 
 # 本地测试
-export gitcodeTargetBranch=master
-export openGaussServer_Http_Repo_Url=https://gitcode.com/opengauss/openGauss-server.git
+# export gitcodeTargetBranch=master
+export openGaussServer_Http_Repo_Url=https://gitcode.com/zhangxubo/openGauss-server_action.git
 
 export WORKSPACE=/usr1/build/workspace
 
@@ -24,9 +24,8 @@ sync && echo 3>/proc/sys/vm/drop_caches
 ipcrm -a
 
 # 本地测试
-gitcodeTargetBranch=master
+# gitcodeTargetBranch=master
 WORKSPACE=/usr1/build/workspace
-openGaussServer_Http_Repo_Url=https://gitcode.com/opengauss/openGauss-server.git
 om_repo=https://gitcode.com/opengauss/openGauss-OM.git
 openGauss3rdbinarylibs=${WORKSPACE}/openGauss-third_party_binarylibs
 gcc_version=10.3
@@ -286,7 +285,7 @@ function install_upgrade() {
 
 function main() {
     download_source
-    #merge_source_code
+    merge_source_code
     download_binarylibs
     get_gcc_version
     export_env

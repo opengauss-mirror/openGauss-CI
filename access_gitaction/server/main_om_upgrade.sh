@@ -9,7 +9,7 @@ dockerfile=dockerfile_om_upgrade
 branch_type=master
 
 ## build docker images
-docker build -t ${docker_image_name} -f ./${dockerfile} .
+#docker build -t ${docker_image_name} -f ./${dockerfile} .
 
 ## run docker images
 if [ "$(docker ps -a | grep ${docker_name})" != "" ]; then
@@ -17,7 +17,9 @@ if [ "$(docker ps -a | grep ${docker_name})" != "" ]; then
     docker rm $docker_name
 fi
 
-containerid=`docker run --privileged=true --network=host -d -it -P  -v /etc/localtime:/etc/localtime -e PKG_TYPE=RELEASE  --name ${docker_name} ${docker_image_name} $branch_type`
+containerid=`docker run --privileged=true --network=host -d -it -P  -v /etc/localtime:/etc/localtime -e PKG_TYPE=RELEASE \
+    -e gitcodePullRequestIid=${gitcodePullRequestIid} -e gitcodeAfterCommitSha=${gitcodeAfterCommitSha} -e gitcodeTargetBranch=${gitcodeTargetBranch} \
+     --name ${docker_name} ${docker_image_name} $branch_type`
 
 [ -n "$containerid" ] || { echo "docker run 失败"; exit 1; }
 
