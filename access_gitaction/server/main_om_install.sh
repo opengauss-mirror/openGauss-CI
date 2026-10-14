@@ -2,7 +2,6 @@
 docker_name=opengauss-om-install-1.0.0
 docker_image_name=opengauss-om-install:1.0.0
 dockerfile=dockerfile_om_install
-branch_type=master
 
 ## build docker images
 # docker build -t ${docker_image_name} -f ./${dockerfile} .
@@ -15,7 +14,7 @@ fi
 
 containerid=`docker run --privileged=true --network=host -d -it -P  -v /etc/localtime:/etc/localtime -e PKG_TYPE=RELEASE \
     -e gitcodePullRequestIid=${gitcodePullRequestIid} -e gitcodeAfterCommitSha=${gitcodeAfterCommitSha} -e gitcodeTargetBranch=${gitcodeTargetBranch} \
-     --name ${docker_name} ${docker_image_name} $branch_type`
+     --name ${docker_name} ${docker_image_name}`
 
 [ -n "$containerid" ] || { echo "docker run 失败"; exit 1; }
 

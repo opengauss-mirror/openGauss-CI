@@ -1,9 +1,8 @@
 
 docker_name=opengauss-llt-1.0.0
 docker_image_name=opengauss-llt:1.0.0
-dockerfile=dockerfile_llt_x86
-branch_type=master
-
+dockerfile=dockerfile_llt
+part_type=A
 ## build docker images
 # docker build -t ${docker_image_name} -f ./${dockerfile} .
 
@@ -19,8 +18,8 @@ fi
 
 containerid=`docker run --privileged=true --network=host -d -it -P  -v /etc/localtime:/etc/localtime \
         -e PKG_TYPE=DEBUG -e gitcodePullRequestIid=${gitcodePullRequestIid} \
-        -e gitcodeAfterCommitSha=${gitcodeAfterCommitSha} \
-        -e gitcodeTargetBranch=${gitcodeTargetBranch} --name ${docker_name} ${docker_image_name} $branch_type`
+        -e gitcodeAfterCommitSha=${gitcodeAfterCommitSha} -e PART_TYPE=${part_type} \
+        -e gitcodeTargetBranch=${gitcodeTargetBranch} --name ${docker_name} ${docker_image_name}`
 
 [ -n "$containerid" ] || { echo "docker run 失败"; exit 1; }
 
