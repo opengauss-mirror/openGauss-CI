@@ -292,6 +292,7 @@ function cat_log() {
         cat $file
     done
 }
+
 function make_fastcheck_ss() {
     chmod -R 755 /usr1/
     chmod -R 755 /data/
@@ -305,6 +306,7 @@ function make_fastcheck_ss() {
         exit 1
     fi
 }
+
 function main() {
     clean
     download_source

@@ -316,13 +316,14 @@ function ha_test() {
 }
 
 function main() {
-    clean
+   # clean
     download_source
     #merge_source_code
     download_binarylibs
     get_ddes_commit_id
     get_gcc_version
     export_env
+    prepare_deps
     complie
     ulimit -c unlimited
     ha_test
