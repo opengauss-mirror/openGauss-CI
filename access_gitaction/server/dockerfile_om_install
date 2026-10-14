@@ -38,6 +38,6 @@ COPY omdeps/pre_compile.sh /data/om/
 COPY omdeps/useradd.sh /data/om/
 RUN chmod -R 755 /data
 
-ENTRYPOINT ["/usr/local/bin/loop.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint_om_install.sh"]
 
 CMD ["tail -f /usr1/build/workspace/build.log"]
