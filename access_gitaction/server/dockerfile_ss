@@ -35,7 +35,6 @@ RUN chmod 755 /usr/local/bin/loop.sh
 COPY serverdeps/config_gcc7.ini /data/config/
 COPY serverdeps/config_gcc10.ini /data/config/
 
-
-ENTRYPOINT ["/usr/local/bin/loop.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint_ss.sh"]
 
 CMD ["tail -f /usr1/build/workspace/build.log"]

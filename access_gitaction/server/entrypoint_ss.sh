@@ -1,20 +1,20 @@
 #!/bin/bash
 
-#echo "gitcodePullRequestIid: ${gitcodePullRequestIid}"
-#echo "gitcodeAfterCommitSha: ${gitcodeAfterCommitSha}"
-#echo "gitcodeRef: refs/merge-requests/${gitcodePullRequestIid}/merge"
-#git config --global core.compression 0
+echo "gitcodePullRequestIid: ${gitcodePullRequestIid}"
+echo "gitcodeAfterCommitSha: ${gitcodeAfterCommitSha}"
+echo "gitcodeRef: refs/merge-requests/${gitcodePullRequestIid}/merge"
+git config --global core.compression 0
 #开发板版本为5.1.0
 if [[ "$gitcodeTargetBranch"x = "dev_board"x ]]; then
     gitcodeTargetBranch="5.1.0"
 fi
-sync && echo 3>/proc/sys/vm/drop_caches
-ipcrm -a
+# sync && echo 3>/proc/sys/vm/drop_caches
+# ipcrm -a
 
 #本地测试
-gitcodeTargetBranch=master
+#gitcodeTargetBranch=master
 WORKSPACE=/usr1/gauss_jenkins/jenkins/workspace
-openGaussServer_Http_Repo_Url=https://gitcode.com/opengauss/openGauss-server.git
+openGaussServer_Http_Repo_Url=https://gitcode.com/zhangxubo/openGauss-server_action.git
 
 openGauss3rdbinarylibs=${WORKSPACE}/openGauss-third_party_binarylibs
 cbb_repo=https://gitcode.com/opengauss/CBB.git
