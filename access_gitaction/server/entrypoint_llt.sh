@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 export WORKSPACE=/usr1/build/workspace
 export openGaussServer_Http_Repo_Url=https://gitcode.com/opengauss/openGauss-server.git
 export gitcodeTargetBranch=master
@@ -159,7 +158,7 @@ function make_fastcheck_single() {
         sh /data/llt/PrivateBuild_tools/Private_Main.sh 0 ${WORKSPACE}/openGauss
     else
         # 其他分支，跑A B C三个文件
-        sh /data/llt/PrivateBuild_tools/Private_Main.sh 0 ${WORKSPACE}/openGauss A
+        sh /data/llt/PrivateBuild_tools/Private_Main.sh 0 ${WORKSPACE}/openGauss ${PART_TYPE}
     fi
 }
 
