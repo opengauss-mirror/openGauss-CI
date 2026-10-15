@@ -11,7 +11,7 @@ ENV LANG en_US.utf8
 
 RUN set -eux; \
     yum install -y lz4 lz4-devel bzip2 bzip2-devel curl libaio libaio-devel flex bison ncurses-devel glibc-devel patch dkms diffutils glibc-locale-source shadow readline-devel wget unixODBC-devel \
-    which git libtool-ltdl-devel autoconf libtool python3 python3-devel python python-devel openssl-devel gcc-c++ make hostname iproute dos2unix libedit-devel libxml2-devel java-1.8.0-openjdk-devel openblas-devel binutils --nogpgcheck && \
+    which git libtool-ltdl-devel autoconf libtool python3 python3-devel python python-devel openssl-devel lsof net-tools numactl-devel gcc-c++ make hostname iproute dos2unix libedit-devel libxml2-devel java-1.8.0-openjdk-devel openblas-devel binutils --nogpgcheck && \
     mkdir -p /usr1/build/workspace/ && \
     groupadd tester2 && useradd -g tester2 -m tester2 && \
     ln -s /usr/lib/dkms/lsb_release /usr/bin/lsb_release && \
@@ -19,6 +19,8 @@ RUN set -eux; \
     mkdir /usr1/build/workspace/dependency && \
     mkdir -p /data/llt/PrivateBuild_tools/ && mkdir -p /data/config/ && mkdir -p /data/llt/PrivateBuild_tools/function && \
     localedef -c -i zh_CN -f GBK zh_CN.GBK && \
+    localedef -c -i zh_CN -f GB18030 zh_CN.GB18030 && \
+    localedef -c -i de_DE -f UTF-8 de_DE.UTF-8 && \
     touch /usr1/build/workspace/build.log
 
 COPY loop.sh /usr/local/bin/

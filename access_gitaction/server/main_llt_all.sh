@@ -4,6 +4,7 @@ docker_image_name=opengauss-llt:1.0.0
 dockerfile=dockerfile_llt
 part_type=A
 ## build docker images
+# git clone
 # docker build -t ${docker_image_name} -f ./${dockerfile} .
 
 
@@ -15,6 +16,8 @@ echo "gitcodeRef: refs/merge-requests/${gitcodePullRequestIid}/merge"
 if [ "$(docker ps -a | grep ${docker_name})" != "" ]; then
     docker rm $docker_name
 fi
+
+## A 测试套不添加 --network=host， 用例forbid_ddl获取ip在容器内外会有差异。
 
 containerid=`docker run --privileged=true --network=host -d -it -P  -v /etc/localtime:/etc/localtime \
         -e PKG_TYPE=DEBUG -e gitcodePullRequestIid=${gitcodePullRequestIid} \
