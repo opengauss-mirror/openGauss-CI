@@ -11,5 +11,5 @@ if [ "$(docker ps -a | grep ${docker_name})" != "" ]; then
     docker rm $docker_name
 fi
 
-containerid=`docker run --privileged=true --network=host -d -it -P  -v /etc/localtime:/etc/localtime -e PKG_TYPE=DEBUG --name ${docker_name} ${docker_image_name}`
+containerid=`docker run kernel.sem="250 6400000 1000 25600" --privileged=true --network=host -d -it -P  -v /etc/localtime:/etc/localtime -e PKG_TYPE=DEBUG --name ${docker_name} ${docker_image_name}`
 docker logs -f ${containerid}

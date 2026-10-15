@@ -308,7 +308,7 @@ function make_fastcheck_ss() {
 }
 
 function main() {
-    clean
+    #clean
     download_source
    # merge_source_code
     download_binarylibs
@@ -318,7 +318,6 @@ function main() {
     prepare_deps
     complie
     make_fastcheck_ss
-    python3 /home/OM/auto_send_email.py
 }
 
 main "$@"
