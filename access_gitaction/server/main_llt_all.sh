@@ -17,6 +17,8 @@ if [ "$(docker ps -a | grep ${docker_name})" != "" ]; then
     docker rm $docker_name
 fi
 
+## A 测试套不添加 --network=host， 用例forbid_ddl获取ip在容器内外会有差异。
+
 containerid=`docker run --privileged=true --network=host -d -it -P  -v /etc/localtime:/etc/localtime \
         -e PKG_TYPE=DEBUG -e gitcodePullRequestIid=${gitcodePullRequestIid} \
         -e gitcodeAfterCommitSha=${gitcodeAfterCommitSha} -e PART_TYPE=${part_type} \

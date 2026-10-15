@@ -19,7 +19,7 @@ RUN set -eux; \
     mkdir /usr1/build/workspace/dependency && \
     mkdir -p /data/llt/PrivateBuild_tools/ && mkdir -p /data/config/ && mkdir -p /data/llt/PrivateBuild_tools/function && \
     localedef -c -i zh_CN -f GBK zh_CN.GBK && \
-    localedef -c -i zh_CN -f GBK zh_CN.GB18030 && \
+    localedef -c -i zh_CN -f GB18030 zh_CN.GB18030 && \
     localedef -c -i de_DE -f UTF-8 de_DE.UTF-8 && \
     touch /usr1/build/workspace/build.log
 
