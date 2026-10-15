@@ -10,12 +10,13 @@ echo "gitcodeRef: refs/merge-requests/${gitcodePullRequestIid}/merge"
 
 ## run docker images
 if [ "$(docker ps -a | grep ${docker_name})" != "" ]; then
+    docker kill $docker_name
     docker rm $docker_name
 fi
 
-containerid=`docker run kernel.sem="250 6400000 1000 25600" --privileged=true --network=host -d -it -P  -v /etc/localtime:/etc/localtime \
+containerid=`docker run --sysctl kernel.sem="250 6400000 1000 25600" --privileged=true --network=host -d -it -P  -v /etc/localtime:/etc/localtime \
         -e PKG_TYPE=DEBUG -e gitcodePullRequestIid=${gitcodePullRequestIid} \
-        -e gitcodeAfterCommitSha=${gitcodeAfterCommitSha} -e PART_TYPE=${part_type} \
+        -e gitcodeAfterCommitSha=${gitcodeAfterCommitSha} \
         -e gitcodeTargetBranch=${gitcodeTargetBranch} --name ${docker_name} ${docker_image_name}`
 
 [ -n "$containerid" ] || { echo "docker run 失败"; exit 1; }
