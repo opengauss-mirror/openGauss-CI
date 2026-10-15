@@ -225,6 +225,7 @@ BaseDb_preinstall() {
         ###########################################################################################
         sed -i 's/self\.prepareSshdService/\#self.prepareSshdService/g' ${BaseDb_scriptpath}/impl/preinstall/PreinstallImpl.py
         sed -i 's/self\.prepareCronService/\#self.prepareCronService/g' ${BaseDb_scriptpath}/impl/preinstall/PreinstallImpl.py
+        sed -i 's/self\.setAndCheckOSParameter/\#self.setAndCheckOSParameter/g' ${BaseDb_scriptpath}/impl/preinstall/PreinstallImpl.py
 
         echo "正在执行：${scriptpath}/gs_preinstall -U ${username} -G ${usergroup} -X ${BaseDb_xmlpath} --sep-env-file=${envfilepath}"
         #spawn ${scriptpath}/gs_preinstall -U ${username} -G ${usergroup} -X ${xmlpath} --sep-env-file=${envfilepath}
@@ -310,6 +311,7 @@ preinstall() {
         ###########################################################################################
         sed -i 's/self\.prepareSshdService/\#self.prepareSshdService/g' ${scriptpath}/impl/preinstall/PreinstallImpl.py
         sed -i 's/self\.prepareCronService/\#self.prepareCronService/g' ${scriptpath}/impl/preinstall/PreinstallImpl.py
+        sed -i 's/self\.setAndCheckOSParameter/\#self.setAndCheckOSParameter/g' ${scriptpath}/impl/preinstall/PreinstallImpl.py
 
         echo "正在执行：${scriptpath}/gs_preinstall -U ${username} -G ${usergroup} -X ${xmlpath} --sep-env-file=${envfilepath}"
         #spawn ${scriptpath}/gs_preinstall -U ${username} -G ${usergroup} -X ${xmlpath} --sep-env-file=${envfilepath}
@@ -397,6 +399,7 @@ upgradectl() {
                         ###########################################################################################
                         sed -i 's/self\.prepareSshdService/\#self.prepareSshdService/g' ${scriptpath}/impl/preinstall/PreinstallImpl.py
                         sed -i 's/self\.prepareCronService/\#self.prepareCronService/g' ${scriptpath}/impl/preinstall/PreinstallImpl.py
+                        sed -i 's/self\.setAndCheckOSParameter/\#self.setAndCheckOSParameter/g' ${scriptpath}/impl/preinstall/PreinstallImpl.py
 
                         ### 升级回滚
                         echo "######################################### 升级回滚检查 #####################################################"

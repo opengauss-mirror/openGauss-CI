@@ -1,14 +1,14 @@
 #!/bin/bash
 
 export WORKSPACE=/usr1/build/workspace
-export openGaussServer_Http_Repo_Url=https://gitcode.com/opengauss/openGauss-server.git
-export gitcodeTargetBranch=master
+export openGaussServer_Http_Repo_Url=https://gitcode.com/zhangxubo/openGauss-server_action.git
+# export gitcodeTargetBranch=master
 
 ################################ 这些需要根据jenkins传入。。。先验证容器跑fastcheck ################################
-# echo "gitcodePullRequestIid: ${gitcodePullRequestIid}"
-# echo "gitcodeAfterCommitSha: ${gitcodeAfterCommitSha}"
-# echo "gitcodeRef: refs/merge-requests/${gitcodePullRequestIid}/merge"
-# git config --global core.compression 0
+echo "gitcodePullRequestIid: ${gitcodePullRequestIid}"
+echo "gitcodeAfterCommitSha: ${gitcodeAfterCommitSha}"
+echo "gitcodeRef: refs/merge-requests/${gitcodePullRequestIid}/merge"
+git config --global core.compression 0
 
 # sync && echo 3>/proc/sys/vm/drop_caches
 # ipcrm -a
@@ -165,7 +165,7 @@ function make_fastcheck_single() {
 function main() {
     prepare_deps
     download_source
-    # merge_source_code
+    merge_source_code
     download_binarylibs
     make_fastcheck_single
 }

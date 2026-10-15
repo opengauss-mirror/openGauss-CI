@@ -39,6 +39,6 @@ COPY omdeps/Base_cluster_1m0s_config.xml /data/om/
 COPY omdeps/useradd.sh /data/om/
 RUN chmod -R 755 /data
 
-ENTRYPOINT ["/usr/local/bin/loop.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint_om_upgrade.sh"]
 
 CMD ["tail -f /usr1/build/workspace/build.log"]

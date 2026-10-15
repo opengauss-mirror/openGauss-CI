@@ -2,8 +2,8 @@
 
 
 # 本地测试
-export gitcodeTargetBranch=master
-export openGaussServer_Http_Repo_Url=https://gitcode.com/opengauss/openGauss-server.git
+# export gitcodeTargetBranch=master
+export openGaussServer_Http_Repo_Url=https://gitcode.com/zhangxubo/openGauss-server_action.git
 
 export WORKSPACE=/usr1/build/workspace
 
@@ -261,7 +261,7 @@ function install_upgrade() {
 function main() {
     prepare_deps
     download_source
-    #merge_source_code
+    merge_source_code
     download_binarylibs
     get_gcc_version
     export_env

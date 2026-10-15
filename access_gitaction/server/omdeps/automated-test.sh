@@ -189,6 +189,7 @@ preinstall() {
         ###########################################################################################
         sed -i 's/self\.prepareSshdService/\#self.prepareSshdService/g' ${scriptpath}/impl/preinstall/PreinstallImpl.py
         sed -i 's/self\.prepareCronService/\#self.prepareCronService/g' ${scriptpath}/impl/preinstall/PreinstallImpl.py
+        sed -i 's/self\.setAndCheckOSParameter/\#self.setAndCheckOSParameter/g' ${scriptpath}/impl/preinstall/PreinstallImpl.py
         
         echo "正在执行：${scriptpath}/gs_preinstall -U ${username} -G ${usergroup} -X ${xmlpath} --sep-env-file=${envfilepath}"
         #spawn ${scriptpath}/gs_preinstall -U ${username} -G ${usergroup} -X ${xmlpath} --sep-env-file=${envfilepath}
