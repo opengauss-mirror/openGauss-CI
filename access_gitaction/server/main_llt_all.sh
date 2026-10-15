@@ -4,6 +4,7 @@ docker_image_name=opengauss-llt:1.0.0
 dockerfile=dockerfile_llt
 part_type=A
 ## build docker images
+# git clone
 # docker build -t ${docker_image_name} -f ./${dockerfile} .
 
 
