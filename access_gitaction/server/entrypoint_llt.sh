@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 export WORKSPACE=/usr1/build/workspace
 export openGaussServer_Http_Repo_Url=https://gitcode.com/zhangxubo/openGauss-server_action.git
 # export gitcodeTargetBranch=master
