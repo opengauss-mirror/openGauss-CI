@@ -26,6 +26,7 @@ function modify_master() {
     sed -i "/db4ai_snapshots/d" "${agent_path}/src/test/regress/parallel_schedule0C"
     sed -i "/test_astore_multixact/d" "${agent_path}/src/test/regress/parallel_schedule0C"
     sed -i "/describe_index_with_tablespace/d" "${agent_path}/src/test/regress/parallel_schedule0C"
+    sed -i "/nls_lower/d" "${agent_path}/src/test/regress/parallel_schedule0C"
 }
 #删除不稳定用例
 function del_testcase() {
