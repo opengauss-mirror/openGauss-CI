@@ -21,6 +21,7 @@ RUN set -eux; \
     localedef -c -i zh_CN -f GBK zh_CN.GBK && \
     localedef -c -i zh_CN -f GB18030 zh_CN.GB18030 && \
     localedef -c -i de_DE -f UTF-8 de_DE.UTF-8 && \
+    localedef -c -i aa_DJ -f UTF-8 aa_DJ.UTF-8 && \
     touch /usr1/build/workspace/build.log
 
 COPY loop.sh /usr/local/bin/
