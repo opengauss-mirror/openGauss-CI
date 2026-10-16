@@ -182,7 +182,7 @@ function download_basepkg() {
             base_package_path=openGauss-All-6.0.0-openEuler20.03-x86_64.tar.gz
     elif [ "$gitcodeTargetBranch" == "7.0.0-RC2" ]; then
             base_package_path=openGauss-All-6.0.0-openEuler20.03-x86_64.tar.gz
-    elif [ "$gitcodeTargetBranch" == "7.0.0-RC1" ]; then
+    elif [ "$gitcodeTargetBranch" == "6.0.0" ]; then
             base_package_path=openGauss-All-6.0.0-openEuler20.03-x86_64.tar.gz
     else
             base_package_path=openGauss-3.0.0-openEuler-64bit-all.tar.gz

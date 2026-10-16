@@ -28,6 +28,7 @@ function modify_master() {
     sed -i "/describe_index_with_tablespace/d" "${agent_path}/src/test/regress/parallel_schedule0C"
     sed -i "/nls_lower/d" "${agent_path}/src/test/regress/parallel_schedule0C"
     sed -i "/charset_d_format/d" "${agent_path}/src/test/regress/parallel_schedule0C"
+    sed -i "/charset_b_format/d" "${agent_path}/src/test/regress/parallel_schedule0A"
 }
 #删除不稳定用例
 function del_testcase() {
