@@ -14,6 +14,7 @@ echo "gitcodeRef: refs/merge-requests/${gitcodePullRequestIid}/merge"
 
 
 if [ "$(docker ps -a | grep ${docker_name})" != "" ]; then
+    docker kill $docker_name
     docker rm $docker_name
 fi
 

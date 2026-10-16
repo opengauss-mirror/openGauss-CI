@@ -256,6 +256,7 @@ function compile_cmake() {
     echo "Start to build opengauss================================================"
     cd ${WORKSPACE}/openGauss/build/script/
     chmod +x build_opengauss.sh
+    cpus_num=$(grep -w processor /proc/cpuinfo|wc -l)
 
     # cmake编译
     sed -i 's/declare CMAKE_PKG="N"/declare CMAKE_PKG="Y"/g' build_opengauss.sh

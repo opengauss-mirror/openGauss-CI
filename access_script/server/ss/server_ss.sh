@@ -150,6 +150,7 @@ function compile_deps() {
 }
 
 function compile_cmake() {
+    cpus_num=$(grep -w processor /proc/cpuinfo|wc -l)
     export PREFIX_HOME=${WORKSPACE}/mppdb_temp_install
     export GAUSSHOME=$PREFIX_HOME
     export LD_LIBRARY_PATH=$GAUSSHOME/lib:$LD_LIBRARY_PATH

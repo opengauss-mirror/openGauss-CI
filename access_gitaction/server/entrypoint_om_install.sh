@@ -181,6 +181,7 @@ function export_env() {
 
 function pkg() {
     # 打包工程
+    cpus_num=$(grep -w processor /proc/cpuinfo|wc -l)
     source /etc/profile
     cd ${WORKSPACE}/openGauss/build/script
     chmod +x build_opengauss.sh
