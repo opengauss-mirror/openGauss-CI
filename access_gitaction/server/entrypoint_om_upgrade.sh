@@ -204,6 +204,7 @@ function export_env() {
 }
 
 function pkg() {
+    cpus_num=$(grep -w processor /proc/cpuinfo|wc -l)
     # 打包工程
     source /etc/profile
     cd ${WORKSPACE}/openGauss/build/script

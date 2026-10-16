@@ -141,9 +141,7 @@ function complie_cmake() {
     export LD_LIBRARY_PATH=$CMAKEHOME/lib:$LD_LIBRARY_PATH
     export PATH=${CMAKEHOME}/bin:${PATH}
 
-    sleep 5
-    sync && echo 3>/proc/sys/vm/drop_caches
-    sleep 5
+    cpus_num=$(grep -w processor /proc/cpuinfo|wc -l)
 
     if [ "$giteeTargetBranch"x = "master"x ] || [ "$giteeTargetBranch"x = "5.0.0"x ]; then
         echo "#################################### Build openGauss with Cmake ####################################"

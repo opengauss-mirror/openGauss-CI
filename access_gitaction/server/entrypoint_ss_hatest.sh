@@ -258,6 +258,7 @@ function export_env() {
 }
 
 function compile_cmake() {
+    cpus_num=$(grep -w processor /proc/cpuinfo|wc -l)
     chmod -R 755 /data/
     echo "Start to build opengauss================================================"
     cd ${WORKSPACE}/openGauss/build/script/
