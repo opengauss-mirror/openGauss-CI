@@ -6,6 +6,8 @@ real_path=$(
     pwd
 )
 
+arch_type=$(uname -m)
+
 # 定义函数，功能：引入配置文件 及 function目录下定义的函数
 function source_file() {
     [ ! -f "${g_conf_file}" ] && echo "Can not find config file ${g_conf_file}" && exit 1
@@ -93,18 +95,6 @@ function show_env_detail {
     log "makemppdb" "OPTION -- g_cur_build_id: ${g_cur_build_id}"
 }
 
-function get_gcc_version() {
-    os_name=$(
-        source /etc/os-release
-        echo $ID
-    )
-    cpu_arc=$(uname -p)
-    if [[ "$cpu_arc"x = "x86_64"x ]]; then
-        gcc_version="10.3.0"
-    else
-        gcc_version="10.3.1"
-    fi
-}
 
 function compile_make() {
     #change current work dir to server
@@ -115,8 +105,6 @@ function compile_make() {
         error "makemppdb" "Change dir failed"
         return 1
     fi
-
-    get_gcc_version
 
     #configure
     configure_start_time=$(date +%s.%N)
@@ -197,14 +185,23 @@ function mk_fastcheck {
     makefastcheck_start_time=$(date +%s.%N)
     log "makemppdb" "makefastcheck_start_time="${makefastcheck_start_time}""
     if [[ "$gitcodeTargetBranch"x = "master"x || "$gitcodeTargetBranch"x = "7.0.0"x ]]; then
-        log "makemppdb" "Command: su - ${g_execute_user} -c \" source /data/llt/PrivateBuild_tools/config_cmake.ini && cd ${g_src_dir}/tmp_build/ && make fastcheck_single -sj p=${g_check_port} PART=${part} && make check -j16\""
-        su - ${g_execute_user} -c " source /data/llt/PrivateBuild_tools/config_cmake.ini && cd ${g_src_dir}/tmp_build/ && make fastcheck_single -sj p=${g_check_port} PART=${part}"
+	log "makemppdb" "Command: su - ${g_execute_user} -c \" source /data/llt/PrivateBuild_tools/config_cmake.ini && cd ${g_src_dir}/tmp_build/ && make fastcheck_single -sj p=${g_check_port} PART=${part} && make check -j16\""
+	
+		result=0
+        ## shardk 放到 03测试套 x86下运行。
+		if [[ "${part}" == "C" && "$arch_type" == "x86_64" ]]; then
+		    su - ${g_execute_user} -c " source /data/llt/PrivateBuild_tools/config_cmake.ini && cd ${g_src_dir}/contrib/shark && make check -j16" || result=1
+        fi
+        su - ${g_execute_user} -c " source /data/llt/PrivateBuild_tools/config_cmake.ini && cd ${g_src_dir}/tmp_build/ && make fastcheck_single -sj p=${g_check_port} PART=${part}" || result=1
 		
-		# 误触发布订阅
-		# su - ${g_execute_user} -c " source /data/llt/PrivateBuild_tools/config_cmake.ini && cd ${g_src_dir}/tmp_build/ && make fastcheck_single -sj p=${g_check_port} PART=${part} && make check -j16"
+		# 注释后续紧跟 make check，由于放开shark用例，导致该任务总时长>60min，门禁子任务拒绝；且原始门禁结果触发的发布订阅check均为失败，这边先直接注释
+        # su - ${g_execute_user} -c " source /data/llt/PrivateBuild_tools/config_cmake.ini && cd ${g_src_dir}/tmp_build/ && make fastcheck_single -sj p=${g_check_port} PART=${part} && make check -j16"
+		
+		[ "$result" -eq 0 ]
+    elif [[  "$gitcodeTargetBranch"x = "7.0.0-RC3"x ]]; then
+        su - ${g_execute_user} -c " source $g_conf_file && export && cd ${g_src_dir}/src/test/regress/ && make fastcheck_single p=${g_check_port} -sj PART=${part} && cd ${g_src_dir}/contrib/shark && make check -j16"
     else
-        log "makemppdb" "Command: su - ${g_execute_user} -c \"source $g_conf_file && export && cd \"${g_src_dir}/src/test/regress/\" && make fastcheck_single p=${g_check_port} -sj\""
-        su - ${g_execute_user} -c " source $g_conf_file && export && cd ${g_src_dir}/src/test/regress/ && make fastcheck_single p=${g_check_port} -sj PART=${part} "
+        su - ${g_execute_user} -c " source $g_conf_file && export && cd ${g_src_dir}/src/test/regress/ && make fastcheck_single p=${g_check_port} -sj PART=${part}"
     fi
 
     if [ $? -ne 0 ]; then
@@ -216,11 +213,17 @@ function mk_fastcheck {
         cat ${g_src_dir}/src/test/regress/log/postmaster_datanode1.log
         cat ${g_src_dir}/src/test/regress/regression.diffs
         cat ${g_src_dir}/src/test/regress/regression.out
+        if [ -f "${g_src_dir}/contrib/shark/regression.diffs" ]; then
+            cat ${g_src_dir}/contrib/shark/regression.diffs
+        fi
 
-	cat ${g_src_dir}/tmp_build/log/initdb.log
+        cat ${g_src_dir}/tmp_build/log/initdb.log
         cat ${g_src_dir}/tmp_build/log/postmaster_datanode1.log
         cat ${g_src_dir}/tmp_build/regression.diffs
         cat ${g_src_dir}/tmp_build/regression.out
+        if [ -f "${g_src_dir}/tmp_build/contrib/shark/regression.diffs" ]; then
+            cat ${g_src_dir}/tmp_build/contrib/shark/regression.diffs
+        fi
 
         flag_makefastcheck_fail=1
         return 1
@@ -431,16 +434,12 @@ function export_config_file() {
 
 function export_gcc_version() {
     gcc_version="10.3.1"
-    os_name=$(
-        source /etc/os-release
-        echo $ID
-    )
     if [[ "$gitcodeTargetBranch"x = "2.0.0"x || "$gitcodeTargetBranch"x = "3.0.0"x || "$gitcodeTargetBranch"x = "5.0.0"x ]]; then
         gcc_version="7.3.0"
     elif [[ "$gitcodeTargetBranch"x = "5.1.0"x || "$gitcodeTargetBranch"x = "6.0.0"x || "$gitcodeTargetBranch"x = "master"x || "$gitcodeTargetBranch"x = "dev"x || "$gitcodeTargetBranch"x = "dev_board"x ]]; then
-        if [[ "$os_name"x = "centos"x ]]; then
+        if [[ "$arch_type"x = "x86_64"x ]]; then
             gcc_version="10.3.0"
-        elif [[ "$os_name"x = "openEuler"x ]]; then
+        elif [[ "$arch_type"x = "aarch64"x ]]; then
             gcc_version="10.3.1"
         fi
     fi
