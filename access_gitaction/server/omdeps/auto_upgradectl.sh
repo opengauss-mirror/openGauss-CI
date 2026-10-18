@@ -283,10 +283,31 @@ BaseDb_startwithhostname() {
                 exit 1
         fi
 }
+
+Install_Basedb() {
+        datanode=/usr1/Base_opengaussautoinstall/cluster/data/dn1
+        apppath=/usr1/Base_opengaussautoinstall/cluster/app
+        mkdir -p ${apppath}
+        mkdir -p ${datanode}
+        tar -xf ${workdir}/openGauss/output/openGauss-Server*.tar.bz2 -C ${apppath}
+        echo "export GAUSSHOME=/usr1/Base_opengaussautoinstall/cluster/app" >> ${BaseDb_envfilepath}
+        echo "export LD_LIBRARY_PATH=/usr1/Base_opengaussautoinstall/cluster/app/lib:$LD_LIBRARY_PATH" >> ${BaseDb_envfilepath}
+        echo "export PATH=/usr1/Base_opengaussautoinstall/cluster/app/bin:$PATH" >> ${BaseDb_envfilepath}
+
+        ## initdb & start db
+        su - ${username} -c "source ${BaseDb_envfilepath}; gs_initdb -D ${datanode} --nodename=upgrade -W Test@123"
+        su - ${username} -c "source ${BaseDb_envfilepath}; gs_guc set -D ${datanode} -c 'port=33000'"
+        su - ${username} -c "source ${BaseDb_envfilepath}; gs_ctl start -D ${datanode}"
+
+}
 #数据采集
+#只需要采集元数据，不使用om按照方式，直接initdb启动数据库采集，简化时间
 gs_upgradechk() {
         echo "${branch}"
         if [[ "${gitcodeTargetBranch}"x = "master"x || "$gitcodeTargetBranch"x = "7.0.0"x ]]; then
+
+                Install_Basedb
+
                 echo "开始进行数据采集"
                 output_pik=$(su ${username} -c '
                 source $1
@@ -558,14 +579,14 @@ postuninstall() {
 }
 
 main
-countDown "BaseDb预安装"
-BaseDb_preinstall
-countDown "BaseDb安装"
-BaseDb_install
-countDown "BaseDb数据库启动 指定hostname"
-BaseDb_startwithhostname
-countDown "BaseDb开始进行元数据校验-数据采集"
-gs_upgradechk
+countDown "BaseDb按照和采集数据"
+# BaseDb_preinstall
+# countDown "BaseDb安装"
+# BaseDb_install
+# countDown "BaseDb数据库启动 指定hostname"
+# BaseDb_startwithhostname
+# countDown "BaseDb开始进行元数据校验-数据采集"
+# gs_upgradechk
 countDown "UpgradeDb预安装"
 preinstall
 countDown "UpgradeDb安装"
