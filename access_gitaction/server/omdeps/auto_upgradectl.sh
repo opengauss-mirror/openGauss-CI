@@ -296,7 +296,7 @@ Install_Basedb() {
         chown -R ${username}:${usergroup} /usr1/Base_opengaussautoinstall
 
         ## initdb & start db
-        su - ${username} -c "source ${BaseDb_envfilepath}; gs_initdb -D ${datanode} --nodename=upgrade -W Test@123"
+        su - ${username} -c "source ${BaseDb_envfilepath}; gs_initdb -D ${datanode} --nodename=upgrade -w Test@123"
         su - ${username} -c "source ${BaseDb_envfilepath}; gs_guc set -D ${datanode} -c 'port=33000'"
         su - ${username} -c "source ${BaseDb_envfilepath}; gs_ctl start -D ${datanode}"
 
