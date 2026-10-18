@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export WORKSPACE=/usr1/build/workspace
-export openGaussServer_Http_Repo_Url=https://gitcode.com/opengauss/openGauss-server_action.git
+export openGaussServer_Http_Repo_Url=https://gitcode.com/opengauss/openGauss-server.git
 # export gitcodeTargetBranch=master
 
 ################################ 这些需要根据jenkins传入。。。先验证容器跑fastcheck ################################
