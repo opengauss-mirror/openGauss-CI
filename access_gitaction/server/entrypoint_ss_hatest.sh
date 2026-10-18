@@ -319,7 +319,7 @@ function ha_test() {
 function main() {
    # clean
     download_source
-    #merge_source_code
+    merge_source_code
     download_binarylibs
     get_ddes_commit_id
     get_gcc_version
