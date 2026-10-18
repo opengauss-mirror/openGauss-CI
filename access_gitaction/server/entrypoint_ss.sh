@@ -14,7 +14,7 @@ fi
 #本地测试
 #gitcodeTargetBranch=master
 WORKSPACE=/usr1/gauss_jenkins/jenkins/workspace
-openGaussServer_Http_Repo_Url=https://gitcode.com/opengauss/openGauss-server_action.git
+openGaussServer_Http_Repo_Url=https://gitcode.com/opengauss/openGauss-server.git
 
 openGauss3rdbinarylibs=${WORKSPACE}/openGauss-third_party_binarylibs
 cbb_repo=https://gitcode.com/opengauss/CBB.git
