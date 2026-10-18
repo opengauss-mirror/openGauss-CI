@@ -291,6 +291,10 @@ Install_Basedb() {
         echo "export LD_LIBRARY_PATH=/usr1/Base_opengaussautoinstall/cluster/app/lib:$LD_LIBRARY_PATH" >> ${BaseDb_envfilepath}
         echo "export PATH=/usr1/Base_opengaussautoinstall/cluster/app/bin:$PATH" >> ${BaseDb_envfilepath}
 
+        chmod 755 ${BaseDb_envfilepath}
+        chmod 755 -R /usr1/Base_opengaussautoinstall
+        chown -R ${username}:${usergroup} /usr1/Base_opengaussautoinstall
+
         ## initdb & start db
         su - ${username} -c "source ${BaseDb_envfilepath}; gs_initdb -D ${datanode} --nodename=upgrade -W Test@123"
         su - ${username} -c "source ${BaseDb_envfilepath}; gs_guc set -D ${datanode} -c 'port=33000'"
