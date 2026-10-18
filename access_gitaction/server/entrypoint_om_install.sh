@@ -3,7 +3,7 @@
 
 # 本地测试
 # export gitcodeTargetBranch=master
-export openGaussServer_Http_Repo_Url=https://gitcode.com/zhangxubo/openGauss-server_action.git
+export openGaussServer_Http_Repo_Url=https://gitcode.com/opengauss/openGauss-server_action.git
 
 export WORKSPACE=/usr1/build/workspace
 
