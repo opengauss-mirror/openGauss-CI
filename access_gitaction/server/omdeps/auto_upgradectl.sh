@@ -176,7 +176,7 @@ main() {
 
 # 程序运行倒计时
 countDown() {
-        for i in $(seq 5 -1 1); do
+        for i in $(seq 3 -1 1); do
                 echo -en "\033[32m $1 操作将在 $i 秒后执行......\r \033[0m"
                 sleep 1s
         done
@@ -577,14 +577,12 @@ postuninstall() {
 }
 
 main
-countDown "BaseDb按照和采集数据"
 # BaseDb_preinstall
 # countDown "BaseDb安装"
 # BaseDb_install
 # countDown "BaseDb数据库启动 指定hostname"
 # BaseDb_startwithhostname
-countDown "BaseDb开始进行元数据校验-数据采集"
-gs_upgradechk
+
 
 countDown "UpgradeDb预安装"
 preinstall
@@ -594,8 +592,12 @@ countDown "UpgradeDb数据库启动 指定hostname"
 startwithhostname
 countDown "集群升级"
 upgradectl
+
+countDown "BaseDb开始安装，进行元数据校验-数据采集"
+gs_upgradechk
 countDown "开始进行元数据校验-数据分析"
 gs_upgradechk_anl
+
 countDown "数据库卸载"
 uninstall
 countDown "环境清理"
