@@ -116,6 +116,8 @@ function compile_make() {
         return 1
     fi
 
+    get_gcc_version
+
     #configure
     configure_start_time=$(date +%s.%N)
     log "makemppdb" "configure_start_time=${configure_start_time}"
@@ -183,7 +185,7 @@ function compile_cmake() {
 }
 
 function mk_fastcheck {
-    if [[ "$gitcodeTargetBranch"x = "master"x || "$gitcodeTargetBranch"x = "7.0.0"x || "$gitcodeTargetBranch"x = "6.0.0"x ]]; then
+    if [[ "$gitcodeTargetBranch"x = "master"x || "$gitcodeTargetBranch"x = "7.0.0"x ]]; then
         compile_cmake
     else
         compile_make
@@ -194,7 +196,7 @@ function mk_fastcheck {
 
     makefastcheck_start_time=$(date +%s.%N)
     log "makemppdb" "makefastcheck_start_time="${makefastcheck_start_time}""
-    if [[ "$gitcodeTargetBranch"x = "master"x || "$gitcodeTargetBranch"x = "7.0.0"x || "$gitcodeTargetBranch"x = "6.0.0"x ]]; then
+    if [[ "$gitcodeTargetBranch"x = "master"x || "$gitcodeTargetBranch"x = "7.0.0"x ]]; then
         log "makemppdb" "Command: su - ${g_execute_user} -c \" source /data/llt/PrivateBuild_tools/config_cmake.ini && cd ${g_src_dir}/tmp_build/ && make fastcheck_single -sj p=${g_check_port} PART=${part} && make check -j16\""
         su - ${g_execute_user} -c " source /data/llt/PrivateBuild_tools/config_cmake.ini && cd ${g_src_dir}/tmp_build/ && make fastcheck_single -sj p=${g_check_port} PART=${part}"
 		
