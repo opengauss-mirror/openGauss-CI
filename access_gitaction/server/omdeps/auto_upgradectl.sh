@@ -312,7 +312,7 @@ gs_upgradechk() {
                 echo "$output_pik"
                 code_path=$(echo "${output_pik}" | tail -n 1 | cut -d'\'':'\'' -f2 | tr -d '\''[:space:]'\'')
                 echo "${code_path}"
-' - ${BaseDb_envfilepath})
+' - ${envfilepath})
                 export code_path=$(echo "$output_pik" | tail -n 1 | cut -d':' -f2 | tr -d "'[:space:]")
                 echo "code_path: ${code_path}"
         fi
