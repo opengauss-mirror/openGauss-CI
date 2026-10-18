@@ -332,6 +332,7 @@ preinstall() {
         sed -i 's/self\.setAndCheckOSParameter/\#self.setAndCheckOSParameter/g' ${scriptpath}/impl/preinstall/PreinstallImpl.py
 
         echo "正在执行：${scriptpath}/gs_preinstall -U ${username} -G ${usergroup} -X ${xmlpath} --sep-env-file=${envfilepath}"
+        cd /data/om/
         #spawn ${scriptpath}/gs_preinstall -U ${username} -G ${usergroup} -X ${xmlpath} --sep-env-file=${envfilepath}
         expect -f $(dirname $0)/auto_preinstall.sh ${username} ${usergroup} ${xmlpath} ${envfilepath} ${scriptpath} ${password} | tee ${logdir}
         preinstallresult=$?
@@ -582,8 +583,9 @@ countDown "BaseDb按照和采集数据"
 # BaseDb_install
 # countDown "BaseDb数据库启动 指定hostname"
 # BaseDb_startwithhostname
-# countDown "BaseDb开始进行元数据校验-数据采集"
-# gs_upgradechk
+countDown "BaseDb开始进行元数据校验-数据采集"
+gs_upgradechk
+
 countDown "UpgradeDb预安装"
 preinstall
 countDown "UpgradeDb安装"
