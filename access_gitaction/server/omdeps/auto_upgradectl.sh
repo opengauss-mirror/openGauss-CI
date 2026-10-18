@@ -55,7 +55,7 @@ package_upgrade_sha256=${workdir}/openGauss/output/upgrade_sql.sha256
 
 if [ "$gitcodeTargetBranch" == "2.0.0" ]; then
         base_package_path=/data/om/openGauss-2.0.0-openEuler-64bit-all.tar.gz
-elif [[ "$gitcodeTargetBranch"x = "master"x || "$gitcodeTargetBranch"x = "7.0.0"x ]]; then
+elif [[ "$gitcodeTargetBranch"x = "master"x || "$gitcodeTargetBranch"x = "7.0.0"x || "$gitcodeTargetBranch"x = "6.0.0"x || "$gitcodeTargetBranch"x = "6.0.5"x ]]; then
         base_package_path=/data/om/openGauss-All-6.0.0-openEuler20.03-x86_64.tar.gz
 elif [ "$gitcodeTargetBranch" == "7.0.0-RC2" ]; then
         base_package_path=/data/om/openGauss-All-6.0.0-openEuler20.03-x86_64.tar.gz
@@ -90,8 +90,6 @@ main() {
         else
                 mkdir -p ${workdir}/om/package
         fi
-        chmod -R 777 ${workdir}/package
-
         tar -zxf ${base_package_path} -C ${workdir}/om/package/
 
         cd ${workdir}/om/package
@@ -101,7 +99,6 @@ main() {
                 tar -xf `ls openGauss-OM-*.tar.gz`
         fi
         
-
         chmod -R 777 ${workdir}/om
 
 
