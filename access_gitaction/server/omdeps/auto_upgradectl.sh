@@ -55,7 +55,7 @@ package_upgrade_sha256=${workdir}/openGauss/output/upgrade_sql.sha256
 
 if [ "$gitcodeTargetBranch" == "2.0.0" ]; then
         base_package_path=/data/om/openGauss-2.0.0-openEuler-64bit-all.tar.gz
-elif [[ "$gitcodeTargetBranch"x = "master"x || "$gitcodeTargetBranch"x = "7.0.0"x ]]; then
+elif [[ "$gitcodeTargetBranch"x = "master"x || "$gitcodeTargetBranch"x = "7.0.0"x || "$gitcodeTargetBranch"x = "6.0.0"x || "$gitcodeTargetBranch"x = "6.0.5"x ]]; then
         base_package_path=/data/om/openGauss-All-6.0.0-openEuler20.03-x86_64.tar.gz
 elif [ "$gitcodeTargetBranch" == "7.0.0-RC2" ]; then
         base_package_path=/data/om/openGauss-All-6.0.0-openEuler20.03-x86_64.tar.gz
@@ -90,8 +90,6 @@ main() {
         else
                 mkdir -p ${workdir}/om/package
         fi
-        chmod -R 777 ${workdir}/package
-
         tar -zxf ${base_package_path} -C ${workdir}/om/package/
 
         cd ${workdir}/om/package
@@ -101,7 +99,6 @@ main() {
                 tar -xf `ls openGauss-OM-*.tar.gz`
         fi
         
-
         chmod -R 777 ${workdir}/om
 
 
@@ -179,7 +176,7 @@ main() {
 
 # 程序运行倒计时
 countDown() {
-        for i in $(seq 5 -1 1); do
+        for i in $(seq 3 -1 1); do
                 echo -en "\033[32m $1 操作将在 $i 秒后执行......\r \033[0m"
                 sleep 1s
         done
@@ -283,10 +280,37 @@ BaseDb_startwithhostname() {
                 exit 1
         fi
 }
+
+Install_Basedb() {
+        datanode=/usr1/Base_opengaussautoinstall/cluster/data/dn1
+        apppath=/usr1/Base_opengaussautoinstall/cluster/app
+        mkdir -p ${apppath}
+        mkdir -p ${datanode}
+        tar -xf ${workdir}/openGauss/output/openGauss-Server*.tar.bz2 -C ${apppath}
+        echo "export GAUSSHOME=/usr1/Base_opengaussautoinstall/cluster/app" >> ${BaseDb_envfilepath}
+        echo "export LD_LIBRARY_PATH=/usr1/Base_opengaussautoinstall/cluster/app/lib:$LD_LIBRARY_PATH" >> ${BaseDb_envfilepath}
+        echo "export PATH=/usr1/Base_opengaussautoinstall/cluster/app/bin:$PATH" >> ${BaseDb_envfilepath}
+        echo "export PGHOST=/usr1/opengaussautoinstall/cluster/tmp" >> ${BaseDb_envfilepath}
+
+        chmod 755 ${BaseDb_envfilepath}
+        chmod 755 -R /usr1/Base_opengaussautoinstall
+        chown -R ${username}:${usergroup} /usr1/Base_opengaussautoinstall
+
+        ## initdb & start db
+        su - ${username} -c "source ${BaseDb_envfilepath}; gs_initdb -D ${datanode} --nodename=upgrade -w Test@123"
+        su - ${username} -c "source ${BaseDb_envfilepath}; gs_guc set -D ${datanode} -c 'port=33000'"
+        su - ${username} -c "source ${BaseDb_envfilepath}; gs_guc set -D ${datanode} -c \"unix_socket_directory='/usr1/opengaussautoinstall/cluster/tmp'\""
+        su - ${username} -c "source ${BaseDb_envfilepath}; gs_ctl start -D ${datanode}"
+
+}
 #数据采集
+#只需要采集元数据，不使用om按照方式，直接initdb启动数据库采集，简化时间
 gs_upgradechk() {
         echo "${branch}"
         if [[ "${gitcodeTargetBranch}"x = "master"x || "$gitcodeTargetBranch"x = "7.0.0"x ]]; then
+
+                Install_Basedb
+
                 echo "开始进行数据采集"
                 output_pik=$(su ${username} -c '
                 source $1
@@ -314,6 +338,7 @@ preinstall() {
         sed -i 's/self\.setAndCheckOSParameter/\#self.setAndCheckOSParameter/g' ${scriptpath}/impl/preinstall/PreinstallImpl.py
 
         echo "正在执行：${scriptpath}/gs_preinstall -U ${username} -G ${usergroup} -X ${xmlpath} --sep-env-file=${envfilepath}"
+        cd /data/om/
         #spawn ${scriptpath}/gs_preinstall -U ${username} -G ${usergroup} -X ${xmlpath} --sep-env-file=${envfilepath}
         expect -f $(dirname $0)/auto_preinstall.sh ${username} ${usergroup} ${xmlpath} ${envfilepath} ${scriptpath} ${password} | tee ${logdir}
         preinstallresult=$?
@@ -558,14 +583,13 @@ postuninstall() {
 }
 
 main
-countDown "BaseDb预安装"
-BaseDb_preinstall
-countDown "BaseDb安装"
-BaseDb_install
-countDown "BaseDb数据库启动 指定hostname"
-BaseDb_startwithhostname
-countDown "BaseDb开始进行元数据校验-数据采集"
-gs_upgradechk
+# BaseDb_preinstall
+# countDown "BaseDb安装"
+# BaseDb_install
+# countDown "BaseDb数据库启动 指定hostname"
+# BaseDb_startwithhostname
+
+
 countDown "UpgradeDb预安装"
 preinstall
 countDown "UpgradeDb安装"
@@ -574,8 +598,12 @@ countDown "UpgradeDb数据库启动 指定hostname"
 startwithhostname
 countDown "集群升级"
 upgradectl
+
+countDown "BaseDb开始安装，进行元数据校验-数据采集"
+gs_upgradechk
 countDown "开始进行元数据校验-数据分析"
 gs_upgradechk_anl
+
 countDown "数据库卸载"
 uninstall
 countDown "环境清理"
