@@ -290,6 +290,7 @@ Install_Basedb() {
         echo "export GAUSSHOME=/usr1/Base_opengaussautoinstall/cluster/app" >> ${BaseDb_envfilepath}
         echo "export LD_LIBRARY_PATH=/usr1/Base_opengaussautoinstall/cluster/app/lib:$LD_LIBRARY_PATH" >> ${BaseDb_envfilepath}
         echo "export PATH=/usr1/Base_opengaussautoinstall/cluster/app/bin:$PATH" >> ${BaseDb_envfilepath}
+        echo "export PGHOST=/usr1/opengaussautoinstall/cluster/tmp" >> ${BaseDb_envfilepath}
 
         chmod 755 ${BaseDb_envfilepath}
         chmod 755 -R /usr1/Base_opengaussautoinstall
@@ -298,6 +299,7 @@ Install_Basedb() {
         ## initdb & start db
         su - ${username} -c "source ${BaseDb_envfilepath}; gs_initdb -D ${datanode} --nodename=upgrade -w Test@123"
         su - ${username} -c "source ${BaseDb_envfilepath}; gs_guc set -D ${datanode} -c 'port=33000'"
+        su - ${username} -c "source ${BaseDb_envfilepath}; gs_guc set -D ${datanode} -c \"unix_socket_directory='/usr1/opengaussautoinstall/cluster/tmp'\""
         su - ${username} -c "source ${BaseDb_envfilepath}; gs_ctl start -D ${datanode}"
 
 }

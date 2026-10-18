@@ -16,7 +16,7 @@ if [ "$(docker ps -a | grep ${docker_name})" != "" ]; then
     docker rm $docker_name
 fi
 
-containerid=`docker run --privileged=true --network=host -d -it -P  -v /etc/localtime:/etc/localtime -e PKG_TYPE=RELEASE \
+containerid=`docker run --sysctl kernel.sem="250 6400000 1000 25600" --privileged=true --network=host -d -it -P  -v /etc/localtime:/etc/localtime -e PKG_TYPE=RELEASE \
     -e gitcodePullRequestIid=${gitcodePullRequestIid} -e gitcodeAfterCommitSha=${gitcodeAfterCommitSha} -e gitcodeTargetBranch=${gitcodeTargetBranch} \
      --name ${docker_name} ${docker_image_name}`
 
