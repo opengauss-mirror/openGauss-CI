@@ -18,6 +18,16 @@ if [ "$(docker ps -a | grep ${docker_name})" != "" ]; then
     docker rm $docker_name
 fi
 
+if [ "$(docker ps | grep ${docker_name})" != "" ]; then
+	docker kill $docker_name
+fi
+
+if [ "$(docker ps -a | grep ${docker_name})" != "" ]; then
+    docker rm $docker_name
+fi
+sync && echo 3>/proc/sys/vm/drop_caches
+ipcrm -a
+
 ## A 测试套不添加 --network=host， 用例forbid_ddl获取ip在容器内外会有差异。
 
 containerid=`docker run --privileged=true --network=host -d -it -P  -v /etc/localtime:/etc/localtime \
