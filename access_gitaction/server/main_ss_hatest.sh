@@ -9,10 +9,15 @@ echo "gitcodeAfterCommitSha: ${gitcodeAfterCommitSha}"
 echo "gitcodeRef: refs/merge-requests/${gitcodePullRequestIid}/merge"
 
 ## run docker images
+if [ "$(docker ps | grep ${docker_name})" != "" ]; then
+	docker kill $docker_name
+fi
+
 if [ "$(docker ps -a | grep ${docker_name})" != "" ]; then
-    docker kill $docker_name
     docker rm $docker_name
 fi
+sync && echo 3>/proc/sys/vm/drop_caches
+ipcrm -a
 
 containerid=`docker run --sysctl kernel.sem="250 6400000 1000 25600" --privileged=true --network=host -d -it -P  -v /etc/localtime:/etc/localtime \
         -e PKG_TYPE=DEBUG -e gitcodePullRequestIid=${gitcodePullRequestIid} \
