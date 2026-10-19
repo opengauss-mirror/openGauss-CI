@@ -12,12 +12,6 @@ echo "gitcodePullRequestIid: ${gitcodePullRequestIid}"
 echo "gitcodeAfterCommitSha: ${gitcodeAfterCommitSha}"
 echo "gitcodeRef: refs/merge-requests/${gitcodePullRequestIid}/merge"
 
-
-if [ "$(docker ps -a | grep ${docker_name})" != "" ]; then
-    docker kill $docker_name
-    docker rm $docker_name
-fi
-
 if [ "$(docker ps | grep ${docker_name})" != "" ]; then
 	docker kill $docker_name
 fi
