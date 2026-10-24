@@ -173,7 +173,7 @@ function compile_cmake() {
 }
 
 function mk_fastcheck {
-    if [[ "$gitcodeTargetBranch"x = "master"x || "$gitcodeTargetBranch"x = "7.0.0"x ]]; then
+    if [[ "$gitcodeTargetBranch"x = "master"x || "$gitcodeTargetBranch"x = "7.0.0"x || "$gitcodeTargetBranch"x = "6.0.0"x ]]; then
         compile_cmake
     else
         compile_make
@@ -184,12 +184,12 @@ function mk_fastcheck {
 
     makefastcheck_start_time=$(date +%s.%N)
     log "makemppdb" "makefastcheck_start_time="${makefastcheck_start_time}""
-    if [[ "$gitcodeTargetBranch"x = "master"x || "$gitcodeTargetBranch"x = "7.0.0"x ]]; then
+    if [[ "$gitcodeTargetBranch"x = "master"x || "$gitcodeTargetBranch"x = "7.0.0"x || "$gitcodeTargetBranch"x = "6.0.0"x ]]; then
 	log "makemppdb" "Command: su - ${g_execute_user} -c \" source /data/llt/PrivateBuild_tools/config_cmake.ini && cd ${g_src_dir}/tmp_build/ && make fastcheck_single -sj p=${g_check_port} PART=${part} && make check -j16\""
 	
 		result=0
         ## shardk 放到 03测试套 x86下运行。
-		if [[ "${part}" == "C" && "$arch_type" == "x86_64" ]]; then
+		if [[ "${part}" == "C" && "$arch_type" == "x86_64" && "$gitcodeTargetBranch" != "6.0.0" ]]; then
 		    su - ${g_execute_user} -c " source /data/llt/PrivateBuild_tools/config_cmake.ini && cd ${g_src_dir}/contrib/shark && make check -j16" || result=1
         fi
         su - ${g_execute_user} -c " source /data/llt/PrivateBuild_tools/config_cmake.ini && cd ${g_src_dir}/tmp_build/ && make fastcheck_single -sj p=${g_check_port} PART=${part}" || result=1
