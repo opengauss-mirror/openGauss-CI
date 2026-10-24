@@ -247,7 +247,7 @@ function install_upgrade() {
     elif [ "${gitcodeTargetBranch}"x == "7.0.0"x ]; then
         pkg_branch="7.0.0"
     elif [ "${gitcodeTargetBranch}"x == "6.0.0"x ]; then
-        pkg_branch="6.0.6"
+        pkg_branch="6.0.7"
     elif [ "${gitcodeTargetBranch}"x == "datavec_poc"x ]; then
         pkg_branch="6.0.2"
     elif [ "${gitcodeTargetBranch}"x == "tp_poc"x ]; then

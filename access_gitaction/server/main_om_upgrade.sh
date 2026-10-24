@@ -9,6 +9,10 @@ dockerfile=dockerfile_om_upgrade
 
 ## build docker images
 #docker build -t ${docker_image_name} -f ./${dockerfile} .
+if [ "${gitcodeTargetBranch}" == "6.0.0" ]; then
+    docker_name=opengauss-om-upgrade-1.0.1
+    docker_image_name=opengauss-om-upgrade:1.0.1
+fi
 
 ## run docker images
 if [ "$(docker ps | grep ${docker_name})" != "" ]; then
