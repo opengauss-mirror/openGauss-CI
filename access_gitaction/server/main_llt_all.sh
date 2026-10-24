@@ -12,6 +12,11 @@ echo "gitcodePullRequestIid: ${gitcodePullRequestIid}"
 echo "gitcodeAfterCommitSha: ${gitcodeAfterCommitSha}"
 echo "gitcodeRef: refs/merge-requests/${gitcodePullRequestIid}/merge"
 
+if [ "${gitcodeTargetBranch}" == "6.0.0" ]; then
+    docker_name=opengauss-llt-1.0.1
+    docker_image_name=opengauss-llt:1.0.1
+fi
+
 if [ "$(docker ps | grep ${docker_name})" != "" ]; then
 	docker kill $docker_name
 fi
