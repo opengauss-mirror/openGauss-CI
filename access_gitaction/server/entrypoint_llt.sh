@@ -133,7 +133,8 @@ function download_binarylibs() {
         echo "ERROR: $gitcodeTargetBranch branch not found"
     fi
     set +e
-    cp ${binarylibs_full} ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz
+    # cp ${binarylibs_full} ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz
+    wget https://download-opengauss.osinfra.cn/archive_test/7.0.0/binarylibs/${binarylibs_full} -O ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz -q
 
     cd ${WORKSPACE}
     mkdir -p ${WORKSPACE}/openGauss-third_party_binarylibs
