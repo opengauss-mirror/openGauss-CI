@@ -1,8 +1,7 @@
 
 ## 容器 + gitaction 门禁
 
+2.0.0 版本改造资源池，对接共享磁盘放置三方库，每个节点（包括弹性扩容机器）挂载共享盘为只读方式。
 
+共享盘放置三方库路径保持不变。
 
-
-
-wget ftp://192.168.0.9/3rd/gcc10.3/master/openGauss-third_party_binarylibs_openEuler_arm.tar.gz -q
