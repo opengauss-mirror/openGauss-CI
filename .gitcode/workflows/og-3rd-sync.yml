@@ -42,26 +42,95 @@ env:
 
 stages:
   sync:
-    name: SyncRunners
+    name: openGauss-CI
     select: selected_by_default
     jobs:
-      sync_runners:
-        name: sync_runners
+      openGauss_LLT_A:
+        name: fastcheck_A
         timeout-minutes: 60
         runs-on: [ self-hosted, arch=arm ]
+        container:
+          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-arm:llt-1.0.0
+          options: --user root
         steps:
-          - name: checkout
-            uses: checkout
-            with:
-              fetch-depth: 1
-          - name: sync_projects
+          # - name: checkout
+          #   uses: checkout
+          #   with:
+          #     fetch-depth: 1
+          - name: run_fastcheck
             env:
               ALLOW_DELETE: '1'
               AUTO_APPROVE: '1'
             run: |
-              echo "PR_IID=$gitcodePullRequestIid"
-              python3 -c "import requests" 2>/dev/null || python3 -m pip install --no-cache-dir -q requests 2>/dev/null || true
-              python3 -c "import requests" 2>/dev/null || { echo "错误: 缺少 requests 且安装失败"; exit 1; }
+              echo "---------------------------- env -------------------"
+              # env
+              echo "------------------------ env end ----------------" 
+              df -h
+              hostname
 
-              cd .gitcode/scripts
-              python3 runner_pull_3rd.py
+              rpm -qa | grep git
+              PART_TYPE=A
+              sh /usr/local/bin/entrypoint_llt.sh 
+
+              pwd
+              ls -l
+              
+              echo "...script end..."
+      openGauss_LLT_B:
+        name: fastcheck_B
+        timeout-minutes: 60
+        runs-on: [ self-hosted, arch=arm ]
+        container:
+          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-arm:llt-1.0.0
+          options: --user root
+        steps:
+          # - name: checkout
+          #   uses: checkout
+          #   with:
+          #     fetch-depth: 1
+          - name: run_fastcheck
+            env:
+              ALLOW_DELETE: '1'
+              AUTO_APPROVE: '1'
+            run: |
+              echo "---------------------------- env -------------------"
+              # env
+              echo "------------------------ env end ----------------" 
+              df -h
+              hostname
+
+              rpm -qa | grep git
+              PART_TYPE=B
+              sh /usr/local/bin/entrypoint_llt.sh 
+
+              pwd
+              ls -l
+              
+              echo "...script end..."
+      openGauss_LLT_C:
+        name: fastcheck_C
+        timeout-minutes: 60
+        runs-on: [ self-hosted, arch=arm ]
+        container:
+          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-arm:llt-1.0.0
+          options: --user root
+        steps:
+          - name: run_fastcheck
+            env:
+              ALLOW_DELETE: '1'
+              AUTO_APPROVE: '1'
+            run: |
+              echo "---------------------------- env -------------------"
+              # env
+              echo "------------------------ env end ----------------" 
+              df -h
+              hostname
+
+              rpm -qa | grep git
+              PART_TYPE=C
+              sh /usr/local/bin/entrypoint_llt.sh 
+
+              pwd
+              ls -l
+              
+              echo "...script end..."

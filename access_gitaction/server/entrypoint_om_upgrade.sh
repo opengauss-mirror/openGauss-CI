@@ -8,13 +8,15 @@ export openGaussServer_Http_Repo_Url=https://gitcode.com/opengauss/openGauss-ser
 export WORKSPACE=/usr1/build/workspace
 
 
-#!/bin/bash
 
-echo "gitcodeTargetBranch: ${gitcodeTargetBranch}"
-echo "gitcodePullRequestIid: ${gitcodePullRequestIid}"
-echo "gitcodeAfterCommitSha: ${gitcodeAfterCommitSha}"
-echo "gitcodeRef: ${gitcodeMergeRef}"
+echo "---------------------------- run om upgrade ---------------------------- "
+echo "gitcodeTargetBranch: ${GITCODE_TARGET_BRANCH}"
+echo "gitcodePullRequestIid: ${GITCODE_PR_IID}"
+echo "parttype: ${PART_TYPE}"
 git config --global core.compression 0
+
+exit 0
+
 
 #开发板版本为5.1.0
 if [[ "$gitcodeTargetBranch"x = "dev_board"x ]]; then

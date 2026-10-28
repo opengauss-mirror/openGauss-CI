@@ -5,7 +5,7 @@ ENV LANG en_US.utf8
 COPY openEuler_aarch64.repo /etc/yum.repos.d/openEuler_aarch64.repo
 
 RUN set -eux; \
-    yum install -y lz4 lz4-devel bzip2 bzip2-devel curl libaio python3 python3-devel python python-devel openssl-devel gcc-c++ make hostname iproute dos2unix libedit-devel binutils --nogpgcheck && \
+    yum install -y lz4 lz4-devel bzip2 bzip2-devel curl libaio python3 git python3-devel python python-devel openssl-devel gcc-c++ make hostname iproute dos2unix libedit-devel binutils --nogpgcheck && \
     mkdir -p /usr1/build/workspace/ && \
     ln -s /usr/lib/dkms/lsb_release /usr/bin/lsb_release && \
     mkdir /usr1/build/workspace/dependency && \
@@ -16,5 +16,6 @@ RUN set -eux; \
 COPY entrypoint.sh /usr/local/bin/
 RUN chmod 755 /usr/local/bin/entrypoint.sh
 
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+ENTRYPOINT 
+# ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 

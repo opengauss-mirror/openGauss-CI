@@ -5,10 +5,14 @@ export openGaussServer_Http_Repo_Url=https://gitcode.com/opengauss/openGauss-ser
 # export gitcodeTargetBranch=master
 
 ################################ 这些需要根据jenkins传入。。。先验证容器跑fastcheck ################################
-echo "gitcodePullRequestIid: ${gitcodePullRequestIid}"
-echo "gitcodeAfterCommitSha: ${gitcodeAfterCommitSha}"
-echo "gitcodeRef: refs/merge-requests/${gitcodePullRequestIid}/merge"
+
+echo "---------------------------- run llt ---------------------------- "
+echo "gitcodeTargetBranch: ${GITCODE_TARGET_BRANCH}"
+echo "gitcodePullRequestIid: ${GITCODE_PR_IID}"
+echo "parttype: ${PART_TYPE}"
 git config --global core.compression 0
+
+exit 0
 
 # sync && echo 3>/proc/sys/vm/drop_caches
 # ipcrm -a

@@ -1,10 +1,13 @@
 #!/bin/bash
 
-echo "gitcodePullRequestIid: ${gitcodePullRequestIid}"
-echo "gitcodeAfterCommitSha: ${gitcodeAfterCommitSha}"
-echo "gitcodeRef: refs/merge-requests/${gitcodePullRequestIid}/merge"
-echo "gitcodeMergeRef=refs/merge-requests/${gitcodePullRequestIid}/merge"
+
+echo "---------------------------- run ss hatest ---------------------------- "
+echo "gitcodeTargetBranch: ${GITCODE_TARGET_BRANCH}"
+echo "gitcodePullRequestIid: ${GITCODE_PR_IID}"
+echo "parttype: ${PART_TYPE}"
 git config --global core.compression 0
+
+exit 0
 
 # sync && echo 3>/proc/sys/vm/drop_caches
 # ipcrm -a
