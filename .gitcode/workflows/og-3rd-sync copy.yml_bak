@@ -31,6 +31,7 @@ permissions:
   note: write
 
 
+
 env:
   GITCODE_REPO: openGauss/openGauss-server
   # 评论事件不在这里取号。issue.number 可能是评论编号，base_ref 也可能不是 PR 目标分支。
