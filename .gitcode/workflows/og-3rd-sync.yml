@@ -52,9 +52,6 @@ stages:
         container:
           image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-llt-x86:devarm
           options: --network=host
-          volumes:
-            - [ "/etc/localtime": "/etc/localtime" ]
-            - [ "/opengauss_3rd_download": "/mnt" ]
           env:
             gitcodePullRequestIid: ${{ env.GITCODE_PR_IID }}
             gitcodeAfterCommitSha: ${{ env.GITCODE_ACTIONS_RUN_ID }}
