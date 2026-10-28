@@ -134,7 +134,7 @@ function download_binarylibs() {
     fi
     set +e
     # cp ${binarylibs_full} ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz
-    wget https://download-opengauss.osinfra.cn/archive_test/7.0.0/binarylibs/${binarylibs_full} -O ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz -q
+    wget https://download-opengauss.osinfra.cn/archive_test/7.0.0/binarylibs/${binarylibs_file}.tar.gz -O ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz -q
 
     cd ${WORKSPACE}
     mkdir -p ${WORKSPACE}/openGauss-third_party_binarylibs
