@@ -24,6 +24,7 @@ def main():
     s, o = subprocess.getstatusoutput(cmd3)
     print(o)
 
+    print('--------------- end -------------')
 
 if __name__ == "__main__":
     main()

@@ -30,7 +30,6 @@ permissions:
   pr: write
   note: write
 
-
 stages:
   sync:
     name: SyncRunners
@@ -40,14 +39,7 @@ stages:
         name: sync_runners
         timeout-minutes: 60
         runs-on: [ self-hosted, arch=arm ]
-        container:
-          image: swr.cn-north-4.myhuaweicloud.com/mindspore/mindspore_python3.11:v0.1
-          options: --user root
         steps:
-          - name: checkout
-            uses: checkout
-            with:
-              fetch-depth: 0
           - name: sync_changed_projects
             env:
               ALLOW_DELETE: '1'
