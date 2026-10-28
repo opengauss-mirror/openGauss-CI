@@ -30,6 +30,7 @@ permissions:
   pr: write
   note: write
 
+
 stages:
   sync:
     name: SyncRunners
@@ -40,7 +41,11 @@ stages:
         timeout-minutes: 60
         runs-on: [ self-hosted, arch=arm ]
         steps:
-          - name: sync_changed_projects
+          - name: checkout
+            uses: checkout
+            with:
+              fetch-depth: 1
+          - name: sync_projects
             env:
               ALLOW_DELETE: '1'
               AUTO_APPROVE: '1'
