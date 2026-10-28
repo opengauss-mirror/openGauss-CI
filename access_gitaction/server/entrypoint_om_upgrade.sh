@@ -142,31 +142,33 @@ function download_binarylibs() {
     fi
     echo "Build openGauss user third-party_binarylibs: ${binarylibs_file}"
 
+    binarylibs_full=""
     set -e
     if [[ "$gitcodeTargetBranch"x = "2.0.0"x ]]; then
-        wget ftp://192.168.0.9/3rd/gcc7.3/2.0.0/openGauss-third_party_binarylibs.tar.gz -O ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz -q
+        binarylibs_full=/mnt/3rd/gcc7.3/2.0.0/openGauss-third_party_binarylibs.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "3.0.0"x ]]; then
-        wget ftp://192.168.0.9/3rd/gcc7.3/3.0.0/${binarylibs_file}-3.0.3.tar.gz -O ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz -q
+        binarylibs_full=/mnt/3rd/gcc7.3/3.0.0/${binarylibs_file}-3.0.3.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "5.0.0"x ]]; then
-        wget ftp://192.168.0.9/3rd/gcc7.3/5.0.0/${binarylibs_file}.tar.gz -O ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz -q
+        binarylibs_full=/mnt/3rd/gcc7.3/5.0.0/${binarylibs_file}.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "5.1.0"x || "$gitcodeTargetBranch"x = "dev_board"x ]]; then
-        wget ftp://192.168.0.9/3rd/gcc10.3/5.1.0/${binarylibs_file}.tar.gz -O ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz -q
+        binarylibs_full=/mnt/3rd/gcc10.3/5.1.0/${binarylibs_file}.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "6.0.0"x || "$gitcodeTargetBranch"x = "6.0.5"x ]]; then
-        wget ftp://192.168.0.9/3rd/gcc10.3/6.0.0/${binarylibs_file}.tar.gz -O ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz -q
+        binarylibs_full=/mnt/3rd/gcc10.3/6.0.0/${binarylibs_file}.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "6.0.0_tag"x || "$gitcodeTargetBranch"x = "tp_poc"x || "$gitcodeTargetBranch"x = "datavec_poc"x ]]; then
-        wget ftp://192.168.0.9/3rd/gcc10.3/6.0.0/${binarylibs_file}.tar.gz -O ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz -q
+        binarylibs_full=/mnt/3rd/gcc10.3/6.0.0/${binarylibs_file}.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "master"x || "$gitcodeTargetBranch"x = "dev"x || "$gitcodeTargetBranch"x = "7.0.0-RC3"x ]]; then
-        wget ftp://192.168.0.9/3rd/gcc10.3/master/${binarylibs_file}.tar.gz -O ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz -q
+        binarylibs_full=/mnt/3rd/gcc10.3/master/${binarylibs_file}.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "7.0.0-RC1"x ]]; then
-        wget ftp://192.168.0.9/3rd/gcc10.3/7.0.0-RC1/${binarylibs_file}.tar.gz -O ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz -q
+        binarylibs_full=/mnt/3rd/gcc10.3/7.0.0-RC1/${binarylibs_file}.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "7.0.0-RC2"x || "$gitcodeTargetBranch"x = "dev"x ]]; then
-        wget ftp://192.168.0.9/3rd/gcc10.3/master/${binarylibs_file}.tar.gz -O ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz -q
+        binarylibs_full=/mnt/3rd/gcc10.3/master/${binarylibs_file}.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "7.0.0"x ]]; then
-        wget ftp://192.168.0.9/3rd/gcc10.3/master/${binarylibs_file}.tar.gz -O ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz -q
+        binarylibs_full=/mnt/3rd/gcc10.3/master/${binarylibs_file}.tar.gz
     else
         echo "ERROR: $gitcodeTargetBranch branch not found"
     fi
     set +e
+    cp ${binarylibs_full} ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz
 
     cd ${WORKSPACE}
     mkdir -p ${WORKSPACE}/openGauss-third_party_binarylibs
@@ -188,7 +190,7 @@ function download_basepkg() {
             base_package_path=openGauss-3.0.0-openEuler-64bit-all.tar.gz
     fi
 
-    wget ftp://192.168.0.9/3rd/ombase/${base_package_path} -q
+    cp /mnt/3rd/ombase/${base_package_path} .
 }
 
 function get_gcc_version() {

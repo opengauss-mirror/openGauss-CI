@@ -1,31 +1,32 @@
 
-docker_name=opengauss-llt-1.0.1
-docker_image_name=opengauss-llt:1.0.1
+docker_name=opengauss-llt-2.0.0
+docker_image_name=opengauss-llt:2.0.0
 dockerfile=dockerfile_llt
 part_type=A
+shared_disk_mount_path=/sharedir/
 ## build docker images
 # git clone
 # docker build -t ${docker_image_name} -f ./${dockerfile} .
-
 
 echo "gitcodePullRequestIid: ${gitcodePullRequestIid}"
 echo "gitcodeAfterCommitSha: ${gitcodeAfterCommitSha}"
 echo "gitcodeRef: refs/merge-requests/${gitcodePullRequestIid}/merge"
 
-
+## 强杀同名容器
 if [ "$(docker ps | grep ${docker_name})" != "" ]; then
 	docker kill $docker_name
 fi
 
-if [ "$(docker ps -a | grep ${docker_name})" != "" ]; then
-    docker rm $docker_name
+## 删除历史已经退出的容器
+if [ "$(docker ps -a | grep Exited)" != "" ]; then
+    docker rm `docker ps -a | grep Exited |awk '{print $1}'`
 fi
-sync && echo 3>/proc/sys/vm/drop_caches
-ipcrm -a
+# sync && echo 3>/proc/sys/vm/drop_caches
+# ipcrm -a
 
 ## A 测试套不添加 --network=host， 用例forbid_ddl获取ip在容器内外会有差异。
 
-containerid=`docker run --privileged=true --network=host -d -it -P  -v /etc/localtime:/etc/localtime \
+containerid=`docker run --privileged=true --network=host -d -it -P  -v /etc/localtime:/etc/localtime -v ${shared_disk_mount_path}:/mnt/ \
         -e PKG_TYPE=DEBUG -e gitcodePullRequestIid=${gitcodePullRequestIid} \
         -e gitcodeAfterCommitSha=${gitcodeAfterCommitSha} -e PART_TYPE=${part_type} \
         -e gitcodeTargetBranch=${gitcodeTargetBranch} --name ${docker_name} ${docker_image_name}`

@@ -3,29 +3,26 @@
 #################################################################
 ## 升级使用x86机器。auto_upgradectl.sh的包和基线包涉及。
 #################################################################
-docker_name=opengauss-om-upgrade-1.0.0
-docker_image_name=opengauss-om-upgrade:1.0.0
+docker_name=opengauss-om-upgrade-2.0.0
+docker_image_name=opengauss-om-upgrade:2.0.0
 dockerfile=dockerfile_om_upgrade
 
-## build docker images
-#docker build -t ${docker_image_name} -f ./${dockerfile} .
-if [ "${gitcodeTargetBranch}" == "6.0.0" ]; then
-    docker_name=opengauss-om-upgrade-1.0.1
-    docker_image_name=opengauss-om-upgrade:1.0.1
-fi
+## runner共享池，共享磁盘放三方库
+shared_disk_mount_path=/sharedir/
 
-## run docker images
+## 强杀同名容器
 if [ "$(docker ps | grep ${docker_name})" != "" ]; then
 	docker kill $docker_name
 fi
 
-if [ "$(docker ps -a | grep ${docker_name})" != "" ]; then
-    docker rm $docker_name
+## 删除历史已经退出的容器
+if [ "$(docker ps -a | grep Exited)" != "" ]; then
+    docker rm `docker ps -a | grep Exited |awk '{print $1}'`
 fi
-sync && echo 3>/proc/sys/vm/drop_caches
-ipcrm -a
+# sync && echo 3>/proc/sys/vm/drop_caches
+# ipcrm -a
 
-containerid=`docker run --sysctl kernel.sem="250 6400000 1000 25600" --privileged=true --network=host -d -it -P  -v /etc/localtime:/etc/localtime -e PKG_TYPE=RELEASE \
+containerid=`docker run --sysctl kernel.sem="250 6400000 1000 25600" --privileged=true --network=host -d -it -P  -v /etc/localtime:/etc/localtime -v ${shared_disk_mount_path}:/mnt/ -e PKG_TYPE=RELEASE \
     -e gitcodePullRequestIid=${gitcodePullRequestIid} -e gitcodeAfterCommitSha=${gitcodeAfterCommitSha} -e gitcodeTargetBranch=${gitcodeTargetBranch} \
      --name ${docker_name} ${docker_image_name}`
 

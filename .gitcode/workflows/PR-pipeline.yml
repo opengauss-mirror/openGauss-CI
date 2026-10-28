@@ -1,0 +1,37 @@
+name: runner-sync
+
+on:
+  push:
+    branches: [ master ]
+
+permissions:
+  repository: write
+  action: read
+
+stages:
+  sync:
+    name: SyncRunners
+    select: selected_by_default
+    jobs:
+      sync_runners:
+        name: sync_runners
+        timeout-minutes: 60
+        runs-on: [ self-hosted, arch=arm ]
+        container:
+          image: swr.cn-north-4.myhuaweicloud.com/mindspore/mindspore_python3.11:v0.1
+          options: --user root
+        steps:
+          - name: checkout
+            uses: checkout
+            with:
+              fetch-depth: 0
+          - name: sync_changed_projects
+            env:
+              ALLOW_DELETE: '1'
+              AUTO_APPROVE: '1'
+            run: |
+              python3 -c "import requests" 2>/dev/null || python3 -m pip install --no-cache-dir -q requests 2>/dev/null || true
+              python3 -c "import requests" 2>/dev/null || { echo "错误: 缺少 requests 且安装失败"; exit 1; }
+
+              cd .gitcode/scripts
+              python3 runner_pull_3rd.py
