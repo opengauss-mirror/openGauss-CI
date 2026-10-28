@@ -26,6 +26,14 @@ def main():
     s, o = subprocess.getstatusoutput(cmd3)
     print(o)
 
+
+    info1 = "ip a | grep -w inet | awk -F '/' '{print $1}'"
+    info2 = "hostname"
+    s, o = subprocess.getstatusoutput(info1)
+    print(o)
+    s, o = subprocess.getstatusoutput(info2)
+    print(o)
+
     print('--------------- end -------------')
 
 if __name__ == "__main__":
