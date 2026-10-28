@@ -2,6 +2,7 @@ FROM openeuler/openeuler:20.03-lts
 
 
 ENV LANG en_US.utf8
+COPY openEuler_aarch64.repo /etc/yum.repos.d/openEuler_aarch64.repo
 
 RUN set -eux; \
     yum install -y lz4 lz4-devel bzip2 bzip2-devel curl libaio python3 python3-devel python python-devel openssl-devel gcc-c++ make hostname iproute dos2unix libedit-devel binutils --nogpgcheck && \
