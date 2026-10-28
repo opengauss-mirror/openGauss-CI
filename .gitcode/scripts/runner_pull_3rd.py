@@ -8,12 +8,20 @@ import subprocess
 
 def main():
     
+    print("------------ df -h -------------")
     cmd1 = "df -h"
     s, o = subprocess.getstatusoutput(cmd1)
     print(o)
 
+    print("------------ ls -------------")
     cmd2 = "ls /opengauss_3rd_download"
     s, o = subprocess.getstatusoutput(cmd2)
+    print(o)
+
+
+    print("------------ touch -------------")
+    cmd3 = "touch /opengauss_3rd_download/testfile-20261028"
+    s, o = subprocess.getstatusoutput(cmd3)
     print(o)
 
 

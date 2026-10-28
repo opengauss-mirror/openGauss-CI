@@ -1,12 +1,35 @@
-name: runner-sync
+name: og-3rd-sync
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - master
+  pull_request_target:
+    # AtomGit 的活动名是 open、update、reopen。opened 和 synchronize 过不了校验。
+    # 不在这里 paths-ignore：纯 .gitcode/doc/docs/docs-lite 变更也必须起流水线，
+    # 由 prepare 打 ci-pipeline-success 并跳过 LLT；否则平台不触发、合入缺 success 标签。
+    types:
+      - open
+      - update
+      - reopen
+    branches:
+      - master
+      - '**'
+  pull_request_comment:
+    types:
+      - created
+    branches:
+      - master
+      - '**'
+    comments:
+      - '^\s*/retest\s*$'
+  workflow_dispatch:
 
 permissions:
   repository: write
-  action: read
+  pr: write
+  note: write
+
 
 stages:
   sync:
