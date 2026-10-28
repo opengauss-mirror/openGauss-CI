@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
 更新opengauss的三方库到k8s资源池门禁共享路径下
+
+按需触发
 """
 import sys
 from pathlib import Path
