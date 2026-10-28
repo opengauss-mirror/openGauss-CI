@@ -49,14 +49,6 @@ stages:
         name: sync_runners
         timeout-minutes: 60
         runs-on: [ self-hosted, arch=arm ]
-        container:
-          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-llt-x86:devarm
-          options: --network=host
-          env:
-            gitcodePullRequestIid: ${{ env.GITCODE_PR_IID }}
-            gitcodeAfterCommitSha: ${{ env.GITCODE_ACTIONS_RUN_ID }}
-            gitcodeTargetBranch: ${{ env.GITCODE_TARGET_BRANCH }}
-            PART_TYPE: "B"
         steps:
           - name: checkout
             uses: checkout
