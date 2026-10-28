@@ -31,6 +31,18 @@ permissions:
   note: write
 
 
+env:
+  GITCODE_REPO: openGauss/openGauss-server
+  # 评论事件不在这里取号。issue.number 可能是评论编号，base_ref 也可能不是 PR 目标分支。
+  GITCODE_EVENT_NAME: ${{ atomgit.event_name }}
+  GITCODE_RUN_ID: ${{ atomgit.workflow_run_id }}
+  # pipeline.upstream_status 在这台平台上是空的。打结果标签时用这个运行号去查测试任务。
+  GITCODE_ACTIONS_RUN_ID: ${{ atomgit.run_id }}
+  GITCODE_PR_IID: ${{ (atomgit.event_name != 'pull_request_comment' && atomgit.event_name != 'pr_comment') && (atomgit.event.pull_request.number || atomgit.event.pull_request.iid || atomgit.event.merge_request.iid || atomgit.event.merge_request.number) || '' }}
+  GITCODE_TARGET_BRANCH: ${{ (atomgit.event_name != 'pull_request_comment' && atomgit.event_name != 'pr_comment') && (atomgit.base_ref || atomgit.event.pull_request.base.ref || atomgit.event.pull_request.target_branch || atomgit.event.merge_request.target_branch) || '' }}
+
+
+
 stages:
   sync:
     name: SyncRunners
@@ -40,6 +52,17 @@ stages:
         name: sync_runners
         timeout-minutes: 60
         runs-on: [ self-hosted, arch=arm ]
+        container:
+          image: swr.cn-north-4.myhuaweicloud.com/mindspore/mindspore_python3.11:v0.1
+          options: --network=host
+          volumes:
+            /etc/localtime: /etc/localtime
+            /opengauss_3rd_download: /mnt
+          env:
+            gitcodePullRequestIid: ${{ env.GITCODE_PR_IID }}
+            gitcodeAfterCommitSha: ${{ env.GITCODE_ACTIONS_RUN_ID }}
+            gitcodeTargetBranch: ${{ env.GITCODE_TARGET_BRANCH }}
+            PART_TYPE: "B"
         steps:
           - name: checkout
             uses: checkout
@@ -50,6 +73,7 @@ stages:
               ALLOW_DELETE: '1'
               AUTO_APPROVE: '1'
             run: |
+              echo "PR_IID=$gitcodePullRequestIid"
               python3 -c "import requests" 2>/dev/null || python3 -m pip install --no-cache-dir -q requests 2>/dev/null || true
               python3 -c "import requests" 2>/dev/null || { echo "错误: 缺少 requests 且安装失败"; exit 1; }
 
