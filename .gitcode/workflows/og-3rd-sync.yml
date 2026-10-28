@@ -42,7 +42,6 @@ env:
   GITCODE_TARGET_BRANCH: ${{ (atomgit.event_name != 'pull_request_comment' && atomgit.event_name != 'pr_comment') && (atomgit.base_ref || atomgit.event.pull_request.base.ref || atomgit.event.pull_request.target_branch || atomgit.event.merge_request.target_branch) || '' }}
 
 
-
 stages:
   sync:
     name: SyncRunners
@@ -53,7 +52,7 @@ stages:
         timeout-minutes: 60
         runs-on: [ self-hosted, arch=arm ]
         container:
-          image: swr.cn-north-4.myhuaweicloud.com/mindspore/mindspore_python3.11:v0.1
+          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-llt-x86:devarm
           options: --network=host
           volumes:
             /etc/localtime: /etc/localtime
