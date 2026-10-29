@@ -61,6 +61,7 @@ env:
   GITCODE_ACTIONS_RUN_ID: ${{ atomgit.run_id }}
   GITCODE_PR_IID: ${{ (atomgit.event_name != 'pull_request_comment' && atomgit.event_name != 'pr_comment') && (atomgit.event.pull_request.number || atomgit.event.pull_request.iid || atomgit.event.merge_request.iid || atomgit.event.merge_request.number) || '' }}
   GITCODE_TARGET_BRANCH: ${{ (atomgit.event_name != 'pull_request_comment' && atomgit.event_name != 'pr_comment') && (atomgit.base_ref || atomgit.event.pull_request.base.ref || atomgit.event.pull_request.target_branch || atomgit.event.merge_request.target_branch) || '' }}
+  PR_LABEL_TOKEN: ${{ secrets.PR_LABEL_TOKEN }}
   llt_a_arm_result: -1
   llt_b_arm_result: -1
   llt_c_arm_result: -1
@@ -108,6 +109,9 @@ stages:
                   ;;
               esac
               echo "---------------------- 打 running 标签， 删除running标签和failed标签 ------------------"
+              sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-success
+              sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-failed
+              sh /usr/local/bin/gitcode_pr_labels.sh add ci-pipeline-running
         
           - name: validDoc
             id: validdoc
@@ -129,6 +133,7 @@ stages:
         container:
           image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-arm:llt-1.0.0
           options: --user root
+        continue-on-error: true
         steps:
           - name: run_fastcheck
             env:
@@ -141,6 +146,7 @@ stages:
                 llt_a_arm_result=0
               else
                 llt_a_arm_result=1
+                exit 1
               fi
               
               echo "...script end..."
@@ -148,6 +154,7 @@ stages:
         name: fastcheck_B_arm
         timeout-minutes: 60
         runs-on: [ self-hosted, arch=arm ]
+        continue-on-error: true
         container:
           image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-arm:llt-1.0.0
           options: --user root
@@ -167,6 +174,7 @@ stages:
                 llt_b_arm_result=0
               else
                 llt_b_arm_result=1
+                exit 1
               fi
               
               
@@ -174,6 +182,7 @@ stages:
       llt_c_arm:
         name: fastcheck_C_arm
         timeout-minutes: 60
+        continue-on-error: true
         runs-on: [ self-hosted, arch=arm ]
         container:
           image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-arm:llt-1.0.0
@@ -191,8 +200,10 @@ stages:
               sh /usr/local/bin/entrypoint_llt.sh 
               if [ "$?" == "0" ]; then
                 llt_c_arm_result=1
+                exit 1
               else
                 llt_c_arm_result=1
+                exit 1
               fi
               
               echo "...script end..."
@@ -203,11 +214,11 @@ stages:
       report_result:
         name: report_result
         runs-on: [self-hosted, arch=x86]
+        continue-on-error: true
         container:
           image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-x86:script-1.0.0
           options: --user root
         timeout-minutes: 10
-        continue-on-error: false
         outputs:
           labeled: ${{ steps.publish.outputs.labeled }}
         steps:
@@ -225,15 +236,18 @@ stages:
               pipeline_success=-1
               if [ "$llt_c_arm_result" = 0 ] && [ "$llt_c_arm_result" = 0 ] && \ 
                 [ "$llt_c_arm_result" = 0 ]; then
-                echo "全部为 0"
                 pipeline_success=0
               else
-                echo "有非 0"
                 pipeline_success=1
               fi
 
               if [ "${pipeline_success}" == 0 ]; then
-                echo "-------- 打 success 标签 --------"
+                sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-running
+                sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-failed
+                sh /usr/local/bin/gitcode_pr_labels.sh add ci-pipeline-succes
               else
-                echo "-------- 打 failed 标签 ---------"
+                sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-running
+                sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-succes
+                sh /usr/local/bin/gitcode_pr_labels.sh add ci-pipeline-failed
+                exit 1
               fi

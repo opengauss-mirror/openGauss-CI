@@ -3,10 +3,11 @@ FROM openeuler/openeuler:20.03-lts
 
 COPY openEuler_aarch64.repo /etc/yum.repos.d/openEuler_aarch64.repo
 
-COPY entrypoint_om_upgrade.sh .
+COPY gitcode_pr_labels.sh /usr/local/bin/
 
 
 ENV LANG en_US.utf8
+RUN chmod 755 /usr/local/bin/gitcode_pr_labels.sh
 
 RUN set -eux; \
     yum install -y curl  wget git --nogpgcheck
