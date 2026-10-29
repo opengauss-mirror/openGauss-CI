@@ -61,7 +61,9 @@ env:
   GITCODE_ACTIONS_RUN_ID: ${{ atomgit.run_id }}
   GITCODE_PR_IID: ${{ (atomgit.event_name != 'pull_request_comment' && atomgit.event_name != 'pr_comment') && (atomgit.event.pull_request.number || atomgit.event.pull_request.iid || atomgit.event.merge_request.iid || atomgit.event.merge_request.number) || '' }}
   GITCODE_TARGET_BRANCH: ${{ (atomgit.event_name != 'pull_request_comment' && atomgit.event_name != 'pr_comment') && (atomgit.base_ref || atomgit.event.pull_request.base.ref || atomgit.event.pull_request.target_branch || atomgit.event.merge_request.target_branch) || '' }}
-
+  llt_a_arm_result: -1
+  llt_b_arm_result: -1
+  llt_c_arm_result: -1
 
 stages:
   create_label:
@@ -133,18 +135,13 @@ stages:
               ALLOW_DELETE: '1'
               AUTO_APPROVE: '1'
             run: |
-              echo "---------------------------- env -------------------"
-              # env
-              echo "------------------------ env end ----------------" 
-              df -h
-              hostname
-
-              rpm -qa | grep git
               PART_TYPE=A
               sh /usr/local/bin/entrypoint_llt.sh 
-
-              pwd
-              ls -l
+              if [ "$?" == "0" ]; then
+                llt_a_arm_result=0
+              else
+                llt_a_arm_result=1
+              fi
               
               echo "...script end..."
       llt_b_arm:
@@ -164,18 +161,14 @@ stages:
               ALLOW_DELETE: '1'
               AUTO_APPROVE: '1'
             run: |
-              echo "---------------------------- env -------------------"
-              # env
-              echo "------------------------ env end ----------------" 
-              df -h
-              hostname
-
-              rpm -qa | grep git
               PART_TYPE=B
               sh /usr/local/bin/entrypoint_llt.sh 
-
-              pwd
-              ls -l
+              if [ "$?" == "0" ]; then
+                llt_b_arm_result=0
+              else
+                llt_b_arm_result=1
+              fi
+              
               
               echo "...script end..."
       llt_c_arm:
@@ -194,33 +187,23 @@ stages:
               echo "---------------------------- env -------------------"
               # env
               echo "------------------------ env end ----------------" 
-              df -h
-              hostname
-
-              rpm -qa | grep git
               PART_TYPE=C
               sh /usr/local/bin/entrypoint_llt.sh 
-
-              pwd
-              ls -l
+              if [ "$?" == "0" ]; then
+                llt_c_arm_result=1
+              else
+                llt_c_arm_result=1
+              fi
               
               echo "...script end..."
   report_result:
     name: Report pipeline result
-    # # 结果任务必须留在 jobs 里。post 里的 needs 引用不到这些任务，整份工作流会校验失败，/retest 也不会注册。
-    # # 测试真的会跑时才依赖它们，结果要等测试结束再写。
-    # # 测试被跳过时，失败标签由 report_skipped 写，这里不再跑，避免依赖被跳过的任务。
-    # needs: [prepare, llt_a_arm, llt_b_arm, llt_c_arm ]
-    # # 测试被跳过时不写结果标签。平台的 if 不能读 needs，改在步骤里判断。
-    # if: ${{ always() }}
     select: selected_by_default
     jobs: 
       report_result:
         name: report_result
         runs-on: [self-hosted, arch=x86]
-        # needs: [prepare, llt_a_arm, llt_b_arm, llt_c_arm ]
         container:
-          # 参考 ci_config PR-pipeline.yml：job 步骤在容器内执行。
           image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-x86:script-1.0.0
           options: --user root
         timeout-minutes: 10
@@ -237,5 +220,20 @@ stages:
             run: |
               set -eu
               umask 077
-              # 下一步读不到 steps.state.outputs，状态文件用运行号放在固定路径。
-              echo "---------------------  更新 success 标签 -----------------------"  
+              echo "---------------------  更新 success 标签 -----------------------" 
+
+              pipeline_success=-1
+              if [ "$llt_c_arm_result" = 0 ] && [ "$llt_c_arm_result" = 0 ] && \ 
+                [ "$llt_c_arm_result" = 0 ]; then
+                echo "全部为 0"
+                pipeline_success=0
+              else
+                echo "有非 0"
+                pipeline_success=1
+              fi
+
+              if [ "${pipeline_success}" == 0 ]; then
+                echo "-------- 打 success 标签 --------"
+              else
+                echo "-------- 打 failed 标签 ---------"
+              fi
