@@ -22,8 +22,8 @@ on:
       - master
       - '**'
     comments:
-      - '^\s*/sync-3rd\s*$'
-      - '^\s*/check-3rd\s*$'
+      - '^\s*/sync3rd\s*$'
+      - '^\s*/check3rd\s*$'
   workflow_dispatch:
 
 permissions:
