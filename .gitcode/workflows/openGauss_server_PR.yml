@@ -208,7 +208,7 @@ stages:
       report_result:
         name: report_result
         runs-on: [self-hosted, server_x86, cpu=16]
-        needs: [prepare, llt_a_arm, llt_b_arm, llt_c_arm ]
+        # needs: [prepare, llt_a_arm, llt_b_arm, llt_c_arm ]
         container:
           # 参考 ci_config PR-pipeline.yml：job 步骤在容器内执行。
           image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-x86:script-1.0.0
