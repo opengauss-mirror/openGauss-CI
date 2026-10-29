@@ -30,6 +30,14 @@ docker build -t ${docker_image_name} -f ./${dockerfile} .
 docker tag ${docker_image_name} swr.cn-north-4.myhuaweicloud.com/opengauss-ci/${docker_image_name}
 
 
+### x86 script
+
+### ss-ha
+docker_image_name=opengauss-ci-x86:script-1.0.0
+dockerfile=dockerfile_script
+docker build -t ${docker_image_name} -f ./${dockerfile} .
+docker tag ${docker_image_name} swr.cn-north-4.myhuaweicloud.com/opengauss-ci/${docker_image_name}
+docker push swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-x86:script-1.0.0
 
 ## arm
 
