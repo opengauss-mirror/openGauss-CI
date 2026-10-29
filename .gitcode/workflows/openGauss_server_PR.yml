@@ -105,7 +105,17 @@ stages:
                   exit 1
                   ;;
               esac
-              echo "---------------------- 打 running 标签 ------------------"
+              echo "---------------------- 打 running 标签， 删除running标签和failed标签 ------------------"
+        
+          - name: validDoc
+            id: validdoc
+            run: |
+              set -eu
+              echo "-----------------检测下是否全是docs以及gitcode   --------------"
+              echo "----------- 打 success标签， 删除running标签和failed标签------ -----"
+              echo "--- 退出 ------ "
+
+      
   test_case:
     name: running test case
     select: selected_by_default
