@@ -85,27 +85,27 @@ stages:
           run_epoch: ${{ steps.state.outputs.run_epoch }}
         steps:
           - name: Createlabel
-          id: state
-          env:
-            LABEL_JOB_TAG: prepare
-          run: |
-            set -eu
-            umask 077
-            # 下一步读不到 steps.state.outputs，状态文件用运行号放在固定路径。
-            run_key="${GITCODE_RUN_ID:-}"
-            case "${run_key}" in
-              ''|*[!A-Za-z0-9._-]*) run_key="${ATOMGIT_RUN_ID:-}" ;;
-            esac
-            case "${run_key}" in
-              ''|*[!A-Za-z0-9._-]*) run_key="${ATOMGIT_RUN_NUMBER:-}" ;;
-            esac
-            case "${run_key}" in
-              ''|*[!A-Za-z0-9._-]*)
-                echo "Cannot name the label state file." >&2
-                exit 1
-                ;;
-            esac
-            echo "---------------------- 打 running 标签 ------------------"
+            id: state
+            env:
+              LABEL_JOB_TAG: prepare
+            run: |
+              set -eu
+              umask 077
+              # 下一步读不到 steps.state.outputs，状态文件用运行号放在固定路径。
+              run_key="${GITCODE_RUN_ID:-}"
+              case "${run_key}" in
+                ''|*[!A-Za-z0-9._-]*) run_key="${ATOMGIT_RUN_ID:-}" ;;
+              esac
+              case "${run_key}" in
+                ''|*[!A-Za-z0-9._-]*) run_key="${ATOMGIT_RUN_NUMBER:-}" ;;
+              esac
+              case "${run_key}" in
+                ''|*[!A-Za-z0-9._-]*)
+                  echo "Cannot name the label state file." >&2
+                  exit 1
+                  ;;
+              esac
+              echo "---------------------- 打 running 标签 ------------------"
   test_case:
     name: running test case
     select: selected_by_default
