@@ -4,17 +4,6 @@ on:
   push:
     branches:
       - master
-  pull_request_target:
-    # AtomGit 的活动名是 open、update、reopen。opened 和 synchronize 过不了校验。
-    # 不在这里 paths-ignore：纯 .gitcode/doc/docs/docs-lite 变更也必须起流水线，
-    # 由 prepare 打 ci-pipeline-success 并跳过 LLT；否则平台不触发、合入缺 success 标签。
-    types:
-      - open
-      - update
-      - reopen
-    branches:
-      - master
-      - '**'
   pull_request_comment:
     types:
       - created
@@ -22,7 +11,8 @@ on:
       - master
       - '**'
     comments:
-      - '^\s*/retest\s*$'
+      - '^\s*/sync-3rd\s*$'
+      - '^\s*/check-3rd\s*$'
   workflow_dispatch:
 
 permissions:
@@ -30,89 +20,17 @@ permissions:
   pr: write
   note: write
 
-env:
-  GITCODE_REPO: openGauss/openGauss-server
-  # 评论事件不在这里取号。issue.number 可能是评论编号，base_ref 也可能不是 PR 目标分支。
-  GITCODE_EVENT_NAME: ${{ atomgit.event_name }}
-  GITCODE_RUN_ID: ${{ atomgit.workflow_run_id }}
-  # pipeline.upstream_status 在这台平台上是空的。打结果标签时用这个运行号去查测试任务。
-  GITCODE_ACTIONS_RUN_ID: ${{ atomgit.run_id }}
-  GITCODE_PR_IID: ${{ (atomgit.event_name != 'pull_request_comment' && atomgit.event_name != 'pr_comment') && (atomgit.event.pull_request.number || atomgit.event.pull_request.iid || atomgit.event.merge_request.iid || atomgit.event.merge_request.number) || '' }}
-  GITCODE_TARGET_BRANCH: ${{ (atomgit.event_name != 'pull_request_comment' && atomgit.event_name != 'pr_comment') && (atomgit.base_ref || atomgit.event.pull_request.base.ref || atomgit.event.pull_request.target_branch || atomgit.event.merge_request.target_branch) || '' }}
-
 stages:
   sync:
-    name: openGauss-CI
+    name: openGauss-CI-Sync-3rd
     select: selected_by_default
     jobs:
-      openGauss_LLT_A:
+      openGauss_Sync_3rd:
         name: fastcheck_A
         timeout-minutes: 60
         runs-on: [ self-hosted, arch=arm ]
         container:
-          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-arm:llt-1.0.0
-          options: --user root
-        steps:
-          # - name: checkout
-          #   uses: checkout
-          #   with:
-          #     fetch-depth: 1
-          - name: run_fastcheck
-            env:
-              ALLOW_DELETE: '1'
-              AUTO_APPROVE: '1'
-            run: |
-              echo "---------------------------- env -------------------"
-              # env
-              echo "------------------------ env end ----------------" 
-              df -h
-              hostname
-
-              rpm -qa | grep git
-              PART_TYPE=A
-              sh /usr/local/bin/entrypoint_llt.sh 
-
-              pwd
-              ls -l
-              
-              echo "...script end..."
-      openGauss_LLT_B:
-        name: fastcheck_B
-        timeout-minutes: 60
-        runs-on: [ self-hosted, arch=arm ]
-        container:
-          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-arm:llt-1.0.0
-          options: --user root
-        steps:
-          # - name: checkout
-          #   uses: checkout
-          #   with:
-          #     fetch-depth: 1
-          - name: run_fastcheck
-            env:
-              ALLOW_DELETE: '1'
-              AUTO_APPROVE: '1'
-            run: |
-              echo "---------------------------- env -------------------"
-              # env
-              echo "------------------------ env end ----------------" 
-              df -h
-              hostname
-
-              rpm -qa | grep git
-              PART_TYPE=B
-              sh /usr/local/bin/entrypoint_llt.sh 
-
-              pwd
-              ls -l
-              
-              echo "...script end..."
-      openGauss_LLT_C:
-        name: fastcheck_C
-        timeout-minutes: 60
-        runs-on: [ self-hosted, arch=arm ]
-        container:
-          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-arm:llt-1.0.0
+          image: swr.cn-north-4.myhuaweicloud.com/mindspore/mindspore_python3.11:v0.1
           options: --user root
         steps:
           - name: run_fastcheck
@@ -120,17 +38,18 @@ stages:
               ALLOW_DELETE: '1'
               AUTO_APPROVE: '1'
             run: |
-              echo "---------------------------- env -------------------"
-              # env
-              echo "------------------------ env end ----------------" 
+              echo "--------------- openGauss-CI-Sync-3rd job start -----------------"
               df -h
-              hostname
 
-              rpm -qa | grep git
-              PART_TYPE=C
-              sh /usr/local/bin/entrypoint_llt.sh 
+              if [ "${MERGE_REQUEST_NOTE}" == "check-3rd" ]; then
+                echo "----- query 3rd info -----------"
 
-              pwd
-              ls -l
+              elif [ "${MERGE_REQUEST_NOTE}" == "sync-3rd" ]; then
+                echo "----- sync 3rd info ----------"
+                
+              else
+                echo "------- not kown note ${MERGE_REQUEST_NOTE} --- skip -------"
+              fi
               
-              echo "...script end..."
+              echo "--------------- openGauss-CI-Sync-3rd job end -----------------"
+      
