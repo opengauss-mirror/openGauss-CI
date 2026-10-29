@@ -195,7 +195,6 @@ stages:
               ls -l
               
               echo "...script end..."
-
     report_result:
       name: Report pipeline result
       # # 结果任务必须留在 jobs 里。post 里的 needs 引用不到这些任务，整份工作流会校验失败，/retest 也不会注册。
@@ -225,4 +224,3 @@ stages:
             umask 077
             # 下一步读不到 steps.state.outputs，状态文件用运行号放在固定路径。
             echo "---------------------  更新 success 标签 -----------------------"
-      
