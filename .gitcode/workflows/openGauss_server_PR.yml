@@ -203,24 +203,29 @@ stages:
     # needs: [prepare, llt_a_arm, llt_b_arm, llt_c_arm ]
     # # 测试被跳过时不写结果标签。平台的 if 不能读 needs，改在步骤里判断。
     # if: ${{ always() }}
-    runs-on: [self-hosted, server_x86, cpu=16]
-    container:
-      # 参考 ci_config PR-pipeline.yml：job 步骤在容器内执行。
-      image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-x86:script-1.0.0
-      options: --user root
-    timeout-minutes: 10
-    continue-on-error: false
-    outputs:
-      labeled: ${{ steps.publish.outputs.labeled }}
-    steps:
-      - name: Show upstream status
-        run: echo "pipeline.upstream_status=${{ pipeline.upstream_status }}"
-      - name: Create label state
-        id: state
-        env:
-          LABEL_JOB_TAG: result
-        run: |
-          set -eu
-          umask 077
-          # 下一步读不到 steps.state.outputs，状态文件用运行号放在固定路径。
-          echo "---------------------  更新 success 标签 -----------------------"  
+    select: selected_by_default
+    jobs: 
+      report_result:
+        name: report_result
+        runs-on: [self-hosted, server_x86, cpu=16]
+        needs: [prepare, llt_a_arm, llt_b_arm, llt_c_arm ]
+        container:
+          # 参考 ci_config PR-pipeline.yml：job 步骤在容器内执行。
+          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-x86:script-1.0.0
+          options: --user root
+        timeout-minutes: 10
+        continue-on-error: false
+        outputs:
+          labeled: ${{ steps.publish.outputs.labeled }}
+        steps:
+          - name: Show upstream status
+            run: echo "pipeline.upstream_status=${{ pipeline.upstream_status }}"
+          - name: Create label state
+            id: state
+            env:
+              LABEL_JOB_TAG: result
+            run: |
+              set -eu
+              umask 077
+              # 下一步读不到 steps.state.outputs，状态文件用运行号放在固定路径。
+              echo "---------------------  更新 success 标签 -----------------------"  
