@@ -197,30 +197,30 @@ stages:
               echo "...script end..."
   report_result:
     name: Report pipeline result
-      # # 结果任务必须留在 jobs 里。post 里的 needs 引用不到这些任务，整份工作流会校验失败，/retest 也不会注册。
-      # # 测试真的会跑时才依赖它们，结果要等测试结束再写。
-      # # 测试被跳过时，失败标签由 report_skipped 写，这里不再跑，避免依赖被跳过的任务。
-      # needs: [prepare, llt_a_arm, llt_b_arm, llt_c_arm ]
-      # # 测试被跳过时不写结果标签。平台的 if 不能读 needs，改在步骤里判断。
-      # if: ${{ always() }}
-      runs-on: [self-hosted, server_x86, cpu=16]
-      container:
-        # 参考 ci_config PR-pipeline.yml：job 步骤在容器内执行。
-        image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-x86:script-1.0.0
-        options: --user root
-      timeout-minutes: 10
-      continue-on-error: false
-      outputs:
-        labeled: ${{ steps.publish.outputs.labeled }}
-      steps:
-        - name: Show upstream status
-          run: echo "pipeline.upstream_status=${{ pipeline.upstream_status }}"
-        - name: Create label state
-          id: state
-          env:
-            LABEL_JOB_TAG: result
-          run: |
-            set -eu
-            umask 077
-            # 下一步读不到 steps.state.outputs，状态文件用运行号放在固定路径。
-            echo "---------------------  更新 success 标签 -----------------------"  
+    # # 结果任务必须留在 jobs 里。post 里的 needs 引用不到这些任务，整份工作流会校验失败，/retest 也不会注册。
+    # # 测试真的会跑时才依赖它们，结果要等测试结束再写。
+    # # 测试被跳过时，失败标签由 report_skipped 写，这里不再跑，避免依赖被跳过的任务。
+    # needs: [prepare, llt_a_arm, llt_b_arm, llt_c_arm ]
+    # # 测试被跳过时不写结果标签。平台的 if 不能读 needs，改在步骤里判断。
+    # if: ${{ always() }}
+    runs-on: [self-hosted, server_x86, cpu=16]
+    container:
+      # 参考 ci_config PR-pipeline.yml：job 步骤在容器内执行。
+      image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-x86:script-1.0.0
+      options: --user root
+    timeout-minutes: 10
+    continue-on-error: false
+    outputs:
+      labeled: ${{ steps.publish.outputs.labeled }}
+    steps:
+      - name: Show upstream status
+        run: echo "pipeline.upstream_status=${{ pipeline.upstream_status }}"
+      - name: Create label state
+        id: state
+        env:
+          LABEL_JOB_TAG: result
+        run: |
+          set -eu
+          umask 077
+          # 下一步读不到 steps.state.outputs，状态文件用运行号放在固定路径。
+          echo "---------------------  更新 success 标签 -----------------------"  
