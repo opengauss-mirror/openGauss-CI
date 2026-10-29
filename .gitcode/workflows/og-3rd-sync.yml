@@ -36,8 +36,8 @@ permissions:
 
 env:
   LINK_600_PREFIX: https://opengauss.obs.cn-south-1.myhuaweicloud.com/6.0.6/binarylibs
-  LINK_700_PREFIX: https://opengauss.obs.cn-south-1.myhuaweicloud.com/7.0.0/binarylibs/
-  LINK_MASTER_PREFIX: https://opengauss.obs.cn-south-1.myhuaweicloud.com/latest/binarylibs/gcc10.3/
+  LINK_700_PREFIX: https://opengauss.obs.cn-south-1.myhuaweicloud.com/7.0.0/binarylibs
+  LINK_MASTER_PREFIX: https://opengauss.obs.cn-south-1.myhuaweicloud.com/latest/binarylibs/gcc10.3
   FILENAME_OEL2003_X86: openGauss-third_party_binarylibs_openEuler_x86_64.tar.gz
   FILENAME_OEL2003_ARM: openGauss-third_party_binarylibs_openEuler_arm.tar.gz
   OMBASE_PKG2: https://opengauss.obs.cn-south-1.myhuaweicloud.com/2.0.0/x86_openEuler/openGauss-2.0.0-openEuler-64bit-all.tar.gz
