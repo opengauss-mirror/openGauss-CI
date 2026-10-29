@@ -71,7 +71,7 @@ stages:
       prepare:
         name: Mark running
         # 只有这一处在流水线开始时写标签。测试不依赖下面的 arm 补跑，arm 被跳过也不会取消测试。
-        runs-on: [self-hosted, server_x86, cpu=16]
+        runs-on: [self-hosted, arch=x86]
         container:
           # 参考 ci_config PR-pipeline.yml：job 步骤在容器内执行。
           image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-x86:script-1.0.0
@@ -207,7 +207,7 @@ stages:
     jobs: 
       report_result:
         name: report_result
-        runs-on: [self-hosted, server_x86, cpu=16]
+        runs-on: [self-hosted, arch=x86]
         # needs: [prepare, llt_a_arm, llt_b_arm, llt_c_arm ]
         container:
           # 参考 ci_config PR-pipeline.yml：job 步骤在容器内执行。
