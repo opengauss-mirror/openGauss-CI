@@ -9,6 +9,6 @@ COPY entrypoint_om_upgrade.sh .
 ENV LANG en_US.utf8
 
 RUN set -eux; \
-    yum install -y curl  wget git --nogpgcheck && \
+    yum install -y curl  wget git --nogpgcheck
     
     
