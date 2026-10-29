@@ -22,7 +22,10 @@ on:
       - master
       - '**'
     comments:
-      - '^\s*/sync-3rd\s*$'
+      - '^\s*/sync-3rd-6.0\s*$'
+      - '^\s*/sync-3rd-7.0\s*$'
+      - '^\s*/sync-3rd-master\s*$'
+      - '^\s*/sync-deps\s*$'
       - '^\s*/check-3rd\s*$'
   workflow_dispatch:
 
@@ -30,6 +33,16 @@ permissions:
   repository: write
   pr: write
   note: write
+
+env:
+  LINK_600_PREFIX: https://opengauss.obs.cn-south-1.myhuaweicloud.com/6.0.6/binarylibs
+  LINK_700_PREFIX: https://opengauss.obs.cn-south-1.myhuaweicloud.com/7.0.0/binarylibs/
+  LINK_MASTER_PREFIX: https://opengauss.obs.cn-south-1.myhuaweicloud.com/latest/binarylibs/gcc10.3/
+  FILENAME_OEL2003_X86: openGauss-third_party_binarylibs_openEuler_x86_64.tar.gz
+  FILENAME_OEL2003_ARM: openGauss-third_party_binarylibs_openEuler_arm.tar.gz
+  OMBASE_PKG2: https://opengauss.obs.cn-south-1.myhuaweicloud.com/2.0.0/x86_openEuler/openGauss-2.0.0-openEuler-64bit-all.tar.gz
+  OMBASE_PKG3: https://opengauss.obs.cn-south-1.myhuaweicloud.com/3.0.0/x86_openEuler/openGauss-3.0.0-openEuler-64bit-all.tar.gz
+  OMBAEE_PKG6: https://opengauss.obs.cn-south-1.myhuaweicloud.com/6.0.6/openEuler20.03/x86/openGauss-All-6.0.6-openEuler20.03-x86_64.tar.gz
 
 stages:
   sync:
@@ -52,14 +65,34 @@ stages:
               echo "--------------- openGauss-CI-Sync-3rd job start -----------------"
               df -h
 
-              if [ "${MERGE_REQUEST_NOTE}" == "check-3rd" ]; then
+              if [ "${MERGE_REQUEST_NOTE}" == "/check-3rd" ]; then
                 echo "----- query 3rd info -----------"
+                cd /mnt/3rd/
+                ls *
 
-              elif [ "${MERGE_REQUEST_NOTE}" == "sync-3rd" ]; then
-                echo "----- sync 3rd info ----------"
-
+              elif [ "${MERGE_REQUEST_NOTE}" == "/sync-3rd-6.0" ]; then
+                mkdir -p /mnt/3rd/6.0.0/
+                cd /mnt/3rd/6.0.0/
+                curl -O ${LINK_600_PREFIX}/${FILENAME_OEL2003_X86}
+                curl -O ${LINK_600_PREFIX}/${FILENAME_OEL2003_ARM}
+              elif [ "${MERGE_REQUEST_NOTE}" == "/sync-3rd-7.0" ]; then
+                mkdir -p /mnt/3rd/7.0.0/
+                cd /mnt/3rd/7.0.0/
+                curl -O ${LINK_700_PREFIX}/${FILENAME_OEL2003_X86}
+                curl -O ${LINK_700_PREFIX}/${FILENAME_OEL2003_ARM}
+              elif [ "${MERGE_REQUEST_NOTE}" == "/sync-3rd-master" ]; then
+                mkdir -p /mnt/3rd/master/
+                cd /mnt/3rd/master/
+                curl -O ${LINK_MASTER_PREFIX}/${FILENAME_OEL2003_X86}
+                curl -O ${LINK_MASTER_PREFIX}/${FILENAME_OEL2003_ARM}
+              elif [ "${MERGE_REQUEST_NOTE}" == "/sync-deps" ]; then
+                mkdir -p /mnt/3rd/ombase/
+                cd /mnt/3rd/ombase/
+                curl -O ${OMBASE_PKG2}
+                curl -O ${OMBASE_PKG3}
+                curl -O ${OMBAEE_PKG6}
               else
-                echo "------- not kown note ${MERGE_REQUEST_NOTE} --- skip -------"
+                echo "------- not kown note [${MERGE_REQUEST_NOTE}] --- skip -------"
               fi
               
               echo "--------------- openGauss-CI-Sync-3rd job end -----------------"
