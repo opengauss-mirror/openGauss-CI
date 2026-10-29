@@ -84,7 +84,7 @@ stages:
           labeled: ${{ steps.publish.outputs.labeled }}
           run_epoch: ${{ steps.state.outputs.run_epoch }}
         steps:
-          - name: Create label state
+          - name: Createlabel
           id: state
           env:
             LABEL_JOB_TAG: prepare
