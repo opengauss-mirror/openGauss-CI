@@ -22,8 +22,8 @@ on:
       - master
       - '**'
     comments:
-      - '^\s*/sync3rd\s*$'
-      - '^\s*/check3rd\s*$'
+      - '^\s*/sync-3rd\s*$'
+      - '^\s*/check-3rd\s*$'
   workflow_dispatch:
 
 permissions:
@@ -37,11 +37,11 @@ stages:
     select: selected_by_default
     jobs:
       openGauss_Sync_3rd:
-        name: fastcheck_A
+        name: Sync-3rd
         timeout-minutes: 60
         runs-on: [ self-hosted, arch=arm ]
         container:
-          image: swr.cn-north-4.myhuaweicloud.com/mindspore/mindspore_python3.11:v0.1
+          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-arm:llt-1.0.0
           options: --user root
         steps:
           - name: run_fastcheck
