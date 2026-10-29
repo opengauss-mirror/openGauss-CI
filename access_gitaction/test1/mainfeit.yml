@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    kubernetes.io/arch: arm64
+  name: job-script-csxvb
+  namespace: opengauss
+spec:
+  automountServiceAccountToken: false
+  hostNetwork: true
+  containers:
+    - name: main
+      image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-llt-x86:devarm
+      command:
+        - bash
+        - -c
+      args:
+        - "sleep 10"
+      env:
+        - name: gitcodePullRequestIid
+          value: "${{ env.GITCODE_PR_IID }}"
+        - name: gitcodeAfterCommitSha
+          value: "${{ env.GITCODE_ACTIONS_RUN_ID }}"
+        - name: gitcodeTargetBranch
+          value: "${{ env.GITCODE_TARGET_BRANCH }}"
+        - name: PART_TYPE
+          value: "B"
+      resources:
+        limits:
+          cpu: '16'
+          memory: 32Gi
+        requests:
+          cpu: '14'
+          memory: 20Gi
+      workingDir: /workspace
+      volumeMounts:
+        - mountPath: /opengauss_3rd_download
+          name: dataset
+        - mountPath: /etc/localtime
+          name: localtime
+          readOnly: true
+        - mountPath: /mnt
+          name: dataset-mnt
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+        runAsUser: 0
+        runAsGroup: 0
+        allowPrivilegeEscalation: false
+  nodeSelector:
+    kunpeng-arm: 'true'
+  restartPolicy: Never
+  volumes:
+    - name: dataset
+      persistentVolumeClaim:
+        claimName: pvc-opengauss
+    - name: localtime
+      hostPath:
+        path: /etc/localtime
+        type: File
+    - name: dataset-mnt
+      persistentVolumeClaim:
+        claimName: pvc-opengauss

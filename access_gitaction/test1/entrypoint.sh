@@ -11,9 +11,8 @@ export WORKSPACE=/usr1/build/workspace
 
 echo "-------------------------- start ci --------------------------"
 
-echo "gitcodeTargetBranch: ${gitcodeTargetBranch}"
-echo "gitcodePullRequestIid: ${gitcodePullRequestIid}"
-echo "gitcodeAfterCommitSha: ${gitcodeAfterCommitSha}"
+echo "gitcodeTargetBranch: ${GITCODE_TARGET_BRANCH}"
+echo "gitcodePullRequestIid: ${GITCODE_PR_IID}"
 echo "gitcodeRef: ${gitcodeMergeRef}"
 echo "parttype: ${PART_TYPE}"
 
