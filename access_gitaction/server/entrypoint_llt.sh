@@ -2,17 +2,14 @@
 
 export WORKSPACE=/usr1/build/workspace
 export openGaussServer_Http_Repo_Url=https://gitcode.com/opengauss/openGauss-server.git
-# export gitcodeTargetBranch=master
-
-################################ 这些需要根据jenkins传入。。。先验证容器跑fastcheck ################################
+export gitcodeTargetBranch=${GITCODE_TARGET_BRANCH}
+export gitcodePullRequestIid=${GITCODE_PR_IID}
 
 echo "---------------------------- run llt ---------------------------- "
 echo "gitcodeTargetBranch: ${GITCODE_TARGET_BRANCH}"
 echo "gitcodePullRequestIid: ${GITCODE_PR_IID}"
 echo "parttype: ${PART_TYPE}"
 git config --global core.compression 0
-
-exit 0
 
 # sync && echo 3>/proc/sys/vm/drop_caches
 # ipcrm -a

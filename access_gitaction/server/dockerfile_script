@@ -1,10 +1,14 @@
 FROM openeuler/openeuler:20.03-lts
 
+
 COPY openEuler_aarch64.repo /etc/yum.repos.d/openEuler_aarch64.repo
+
+COPY entrypoint_om_upgrade.sh .
+
 
 ENV LANG en_US.utf8
 
 RUN set -eux; \
-    yum install -y curl wget git --nogpgcheck
+    yum install -y curl  wget git --nogpgcheck && \
     
     
