@@ -110,7 +110,7 @@ stages:
         timeout-minutes: 60
         runs-on: [self-hosted, arch=arm]
         container:
-          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-arm:llt-1.0.0
+          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-arm:llt-1.0.1
           options: --user root
         continue-on-error: true
         outputs:
