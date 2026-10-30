@@ -150,11 +150,7 @@ stages:
                 llt_a_arm_result=1
                 exit 1
               fi
-
-              echo "-------------- 测试网络 ---------------"
-              ifconfig
-
-              ip a
+              exit 1
               
               echo "...script end..."
       llt_b_arm:
@@ -175,13 +171,6 @@ stages:
               ALLOW_DELETE: '1'
               AUTO_APPROVE: '1'
             run: |
-
-              echo "-------------- 测试网络 ---------------"
-              ifconfig
-
-              ip a
-
-
               PART_TYPE=B
               sh /usr/local/bin/entrypoint_llt.sh 
               if [ "$?" == "0" ]; then
@@ -210,13 +199,6 @@ stages:
               echo "---------------------------- env -------------------"
               # env
               echo "------------------------ env end ----------------" 
-
-
-              echo "-------------- 测试网络 ---------------"
-              ifconfig
-
-              ip a
-
               PART_TYPE=C
               sh /usr/local/bin/entrypoint_llt.sh 
               if [ "$?" == "0" ]; then
@@ -229,46 +211,28 @@ stages:
               
               echo "...script end..."
   report_result:
-    name: Report pipeline result
-    select: selected_by_default
-    jobs: 
-      report_result:
-        name: report_result
-        runs-on: [self-hosted, arch=x86]
-        continue-on-error: true
-        container:
-          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-x86:script-1.0.0
-          options: --user root
-        timeout-minutes: 10
-        outputs:
-          labeled: ${{ steps.publish.outputs.labeled }}
-        steps:
-          - name: Show upstream status
-            run: echo "pipeline.upstream_status=${{ pipeline.upstream_status }}"
-          - name: Create label state
-            id: state
-            env:
-              LABEL_JOB_TAG: result
-            run: |
-              set -eu
-              umask 077
-              echo "---------------------  更新 success 标签 -----------------------" 
-
-              pipeline_success=-1
-              if [ "$llt_c_arm_result" = 0 ] && [ "$llt_c_arm_result" = 0 ] && \ 
-                [ "$llt_c_arm_result" = 0 ]; then
-                pipeline_success=0
-              else
-                pipeline_success=1
-              fi
-
-              if [ "${pipeline_success}" == 0 ]; then
-                sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-running
-                sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-failed
-                sh /usr/local/bin/gitcode_pr_labels.sh add ci-pipeline-succes
-              else
-                sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-running
-                sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-succes
-                sh /usr/local/bin/gitcode_pr_labels.sh add ci-pipeline-failed
-                exit 1
-              fi
+    needs: [llt_a_arm, llt_b_arm, llt_c_arm]
+    if: always()
+    runs-on: [self-hosted, arch=x86]
+    container:
+      image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-x86:script-1.0.0
+      options: --user root
+    steps:
+      - name: judge
+        env:
+          A: ${{ jobs.llt_a_arm.result }}
+          B: ${{ jobs.llt_b_arm.result }}
+          C: ${{ jobs.llt_c_arm.result }}
+        run: |
+          set -eu
+          echo "A=$A B=$B C=$C"
+          if [ "$A" = "success" ] && [ "$B" = "success" ] && [ "$C" = "success" ]; then
+            sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-running
+            sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-failed
+            sh /usr/local/bin/gitcode_pr_labels.sh add ci-pipeline-success
+          else
+            sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-running
+            sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-success
+            sh /usr/local/bin/gitcode_pr_labels.sh add ci-pipeline-failed
+            exit 1
+          fi
