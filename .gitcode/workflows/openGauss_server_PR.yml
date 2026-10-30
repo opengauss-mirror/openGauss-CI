@@ -155,7 +155,10 @@ stages:
                 echo "result=1" >> "$ATOMGIT_OUTPUT"
                 exit 1
               fi
+
+              ## 测试失败
               exit 1
+              echo "result=1" >> "$ATOMGIT_OUTPUT"
               echo "...script end..."
 
       llt_c_arm:
