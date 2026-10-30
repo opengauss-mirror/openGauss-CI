@@ -92,6 +92,8 @@ stages:
             env:
               LABEL_JOB_TAG: prepare
             run: |
+              env
+              
               set -eu
               umask 077
               # 下一步读不到 steps.state.outputs，状态文件用运行号放在固定路径。
