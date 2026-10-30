@@ -211,28 +211,32 @@ stages:
               
               echo "...script end..."
   report_result:
-    needs: [llt_a_arm, llt_b_arm, llt_c_arm]
-    if: always()
-    runs-on: [self-hosted, arch=x86]
-    container:
-      image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-x86:script-1.0.0
-      options: --user root
-    steps:
-      - name: judge
-        env:
-          A: ${{ jobs.llt_a_arm.result }}
-          B: ${{ jobs.llt_b_arm.result }}
-          C: ${{ jobs.llt_c_arm.result }}
-        run: |
-          set -eu
-          echo "A=$A B=$B C=$C"
-          if [ "$A" = "success" ] && [ "$B" = "success" ] && [ "$C" = "success" ]; then
-            sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-running
-            sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-failed
-            sh /usr/local/bin/gitcode_pr_labels.sh add ci-pipeline-success
-          else
-            sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-running
-            sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-success
-            sh /usr/local/bin/gitcode_pr_labels.sh add ci-pipeline-failed
-            exit 1
-          fi
+    name: ReportResult
+    jobs:
+      report:
+        name: report_result
+        needs: [llt_a_arm, llt_b_arm, llt_c_arm]
+        if: always()
+        runs-on: [self-hosted, arch=x86]
+        container:
+          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-x86:script-1.0.0
+          options: --user root
+        steps:
+          - name: judge
+            env:
+              A: ${{ jobs.llt_a_arm.result }}
+              B: ${{ jobs.llt_b_arm.result }}
+              C: ${{ jobs.llt_c_arm.result }}
+            run: |
+              set -eu
+              echo "A=$A B=$B C=$C"
+              if [ "$A" = "success" ] && [ "$B" = "success" ] && [ "$C" = "success" ]; then
+                sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-running
+                sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-failed
+                sh /usr/local/bin/gitcode_pr_labels.sh add ci-pipeline-success
+              else
+                sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-running
+                sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-success
+                sh /usr/local/bin/gitcode_pr_labels.sh add ci-pipeline-failed
+                exit 1
+              fi
