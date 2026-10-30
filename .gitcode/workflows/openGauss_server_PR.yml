@@ -133,7 +133,7 @@ stages:
         timeout-minutes: 60
         runs-on: [ self-hosted, arch=arm ]
         container:
-          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-arm:llt-1.0.1
+          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-arm:llt-1.0.0
           options: --user root
         continue-on-error: true
         steps:
@@ -150,6 +150,11 @@ stages:
                 llt_a_arm_result=1
                 exit 1
               fi
+
+              echo "-------------- 测试网络 ---------------"
+              ifconfig
+
+              ip a
               
               echo "...script end..."
       llt_b_arm:
@@ -158,7 +163,7 @@ stages:
         runs-on: [ self-hosted, arch=arm ]
         continue-on-error: true
         container:
-          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-arm:llt-1.0.1
+          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-arm:llt-1.0.0
           options: --user root
         steps:
           # - name: checkout
@@ -170,6 +175,13 @@ stages:
               ALLOW_DELETE: '1'
               AUTO_APPROVE: '1'
             run: |
+
+              echo "-------------- 测试网络 ---------------"
+              ifconfig
+
+              ip a
+
+
               PART_TYPE=B
               sh /usr/local/bin/entrypoint_llt.sh 
               if [ "$?" == "0" ]; then
@@ -187,7 +199,7 @@ stages:
         continue-on-error: true
         runs-on: [ self-hosted, arch=arm ]
         container:
-          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-arm:llt-1.0.1
+          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-arm:llt-1.0.0
           options: --user root
         steps:
           - name: run_fastcheck
@@ -198,6 +210,13 @@ stages:
               echo "---------------------------- env -------------------"
               # env
               echo "------------------------ env end ----------------" 
+
+
+              echo "-------------- 测试网络 ---------------"
+              ifconfig
+
+              ip a
+
               PART_TYPE=C
               sh /usr/local/bin/entrypoint_llt.sh 
               if [ "$?" == "0" ]; then
