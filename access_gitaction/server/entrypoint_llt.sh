@@ -2,17 +2,14 @@
 
 export WORKSPACE=/usr1/build/workspace
 export openGaussServer_Http_Repo_Url=https://gitcode.com/opengauss/openGauss-server.git
-# export gitcodeTargetBranch=master
-
-################################ 这些需要根据jenkins传入。。。先验证容器跑fastcheck ################################
+export gitcodeTargetBranch=${GITCODE_TARGET_BRANCH}
+export gitcodePullRequestIid=${GITCODE_PR_IID}
 
 echo "---------------------------- run llt ---------------------------- "
 echo "gitcodeTargetBranch: ${GITCODE_TARGET_BRANCH}"
 echo "gitcodePullRequestIid: ${GITCODE_PR_IID}"
 echo "parttype: ${PART_TYPE}"
 git config --global core.compression 0
-
-exit 0
 
 # sync && echo 3>/proc/sys/vm/drop_caches
 # ipcrm -a
@@ -120,25 +117,25 @@ function download_binarylibs() {
     elif [[ "$gitcodeTargetBranch"x = "5.0.0"x ]]; then
         binarylibs_full=/mnt/3rd/gcc7.3/5.0.0/${binarylibs_file}.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "5.1.0"x || "$gitcodeTargetBranch"x = "dev_board"x ]]; then
-        binarylibs_full=/mnt/3rd/gcc10.3/5.1.0/${binarylibs_file}.tar.gz
+        binarylibs_full=/mnt/3rd/5.1.0/${binarylibs_file}.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "6.0.0"x || "$gitcodeTargetBranch"x = "6.0.5"x ]]; then
-        binarylibs_full=/mnt/3rd/gcc10.3/6.0.0/${binarylibs_file}.tar.gz
+        binarylibs_full=/mnt/3rd/6.0.0/${binarylibs_file}.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "6.0.0_tag"x || "$gitcodeTargetBranch"x = "tp_poc"x || "$gitcodeTargetBranch"x = "datavec_poc"x ]]; then
-        binarylibs_full=/mnt/3rd/gcc10.3/6.0.0/${binarylibs_file}.tar.gz
+        binarylibs_full=/mnt/3rd/6.0.0/${binarylibs_file}.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "master"x || "$gitcodeTargetBranch"x = "dev"x || "$gitcodeTargetBranch"x = "7.0.0-RC3"x ]]; then
-        binarylibs_full=/mnt/3rd/gcc10.3/master/${binarylibs_file}.tar.gz
+        binarylibs_full=/mnt/3rd/master/${binarylibs_file}.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "7.0.0-RC1"x ]]; then
-        binarylibs_full=/mnt/3rd/gcc10.3/7.0.0-RC1/${binarylibs_file}.tar.gz
+        binarylibs_full=/mnt/3rd/7.0.0-RC1/${binarylibs_file}.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "7.0.0-RC2"x || "$gitcodeTargetBranch"x = "dev"x ]]; then
-        binarylibs_full=/mnt/3rd/gcc10.3/master/${binarylibs_file}.tar.gz
+        binarylibs_full=/mnt/3rd/master/${binarylibs_file}.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "7.0.0"x ]]; then
-        binarylibs_full=/mnt/3rd/gcc10.3/master/${binarylibs_file}.tar.gz
+        binarylibs_full=/mnt/3rd/master/${binarylibs_file}.tar.gz
     else
         echo "ERROR: $gitcodeTargetBranch branch not found"
     fi
     set +e
-    # cp ${binarylibs_full} ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz
-    wget https://download-opengauss.osinfra.cn/archive_test/7.0.0/binarylibs/${binarylibs_file}.tar.gz -O ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz -q
+    cp ${binarylibs_full} ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz
+    #wget https://download-opengauss.osinfra.cn/archive_test/7.0.0/binarylibs/${binarylibs_file}.tar.gz -O ${WORKSPACE}/openGauss-third_party_binarylibs.tar.gz -q
 
     cd ${WORKSPACE}
     mkdir -p ${WORKSPACE}/openGauss-third_party_binarylibs

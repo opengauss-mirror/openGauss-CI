@@ -1,13 +1,9 @@
 #!/bin/bash
 
-
-# 本地测试
-# export gitcodeTargetBranch=master
 export openGaussServer_Http_Repo_Url=https://gitcode.com/opengauss/openGauss-server.git
-
 export WORKSPACE=/usr1/build/workspace
-
-
+export gitcodeTargetBranch=${GITCODE_TARGET_BRANCH}
+export gitcodePullRequestIid=${GITCODE_PR_IID}
 
 echo "---------------------------- run om upgrade ---------------------------- "
 echo "gitcodeTargetBranch: ${GITCODE_TARGET_BRANCH}"
@@ -15,18 +11,14 @@ echo "gitcodePullRequestIid: ${GITCODE_PR_IID}"
 echo "parttype: ${PART_TYPE}"
 git config --global core.compression 0
 
-exit 0
-
 
 #开发板版本为5.1.0
 if [[ "$gitcodeTargetBranch"x = "dev_board"x ]]; then
     gitcodeTargetBranch="5.1.0"
 fi
-sync && echo 3>/proc/sys/vm/drop_caches
-ipcrm -a
+
 
 # 本地测试
-# gitcodeTargetBranch=master
 WORKSPACE=/usr1/build/workspace
 om_repo=https://gitcode.com/opengauss/openGauss-OM.git
 openGauss3rdbinarylibs=${WORKSPACE}/openGauss-third_party_binarylibs
@@ -153,19 +145,19 @@ function download_binarylibs() {
     elif [[ "$gitcodeTargetBranch"x = "5.0.0"x ]]; then
         binarylibs_full=/mnt/3rd/gcc7.3/5.0.0/${binarylibs_file}.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "5.1.0"x || "$gitcodeTargetBranch"x = "dev_board"x ]]; then
-        binarylibs_full=/mnt/3rd/gcc10.3/5.1.0/${binarylibs_file}.tar.gz
+        binarylibs_full=/mnt/3rd/5.1.0/${binarylibs_file}.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "6.0.0"x || "$gitcodeTargetBranch"x = "6.0.5"x ]]; then
-        binarylibs_full=/mnt/3rd/gcc10.3/6.0.0/${binarylibs_file}.tar.gz
+        binarylibs_full=/mnt/3rd/6.0.0/${binarylibs_file}.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "6.0.0_tag"x || "$gitcodeTargetBranch"x = "tp_poc"x || "$gitcodeTargetBranch"x = "datavec_poc"x ]]; then
-        binarylibs_full=/mnt/3rd/gcc10.3/6.0.0/${binarylibs_file}.tar.gz
+        binarylibs_full=/mnt/3rd/6.0.0/${binarylibs_file}.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "master"x || "$gitcodeTargetBranch"x = "dev"x || "$gitcodeTargetBranch"x = "7.0.0-RC3"x ]]; then
-        binarylibs_full=/mnt/3rd/gcc10.3/master/${binarylibs_file}.tar.gz
+        binarylibs_full=/mnt/3rd/master/${binarylibs_file}.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "7.0.0-RC1"x ]]; then
-        binarylibs_full=/mnt/3rd/gcc10.3/7.0.0-RC1/${binarylibs_file}.tar.gz
+        binarylibs_full=/mnt/3rd/7.0.0-RC1/${binarylibs_file}.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "7.0.0-RC2"x || "$gitcodeTargetBranch"x = "dev"x ]]; then
-        binarylibs_full=/mnt/3rd/gcc10.3/master/${binarylibs_file}.tar.gz
+        binarylibs_full=/mnt/3rd/master/${binarylibs_file}.tar.gz
     elif [[ "$gitcodeTargetBranch"x = "7.0.0"x ]]; then
-        binarylibs_full=/mnt/3rd/gcc10.3/master/${binarylibs_file}.tar.gz
+        binarylibs_full=/mnt/3rd/master/${binarylibs_file}.tar.gz
     else
         echo "ERROR: $gitcodeTargetBranch branch not found"
     fi

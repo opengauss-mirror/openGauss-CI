@@ -1,0 +1,218 @@
+name: openGauss_server_PR
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '.gitcode/**'
+      - 'doc/**'
+      - 'docs/**'
+      - 'docs-lite/**'
+  pull_request_target:
+    types:
+      - open
+      - update
+      - reopen
+    branches:
+      - master
+      - '**'
+  pull_request_comment:
+    types:
+      - created
+    branches:
+      - master
+      - '**'
+    comments:
+      - '^\s*/retest\s*$'
+  workflow_dispatch:
+
+permissions:
+  repository: read
+  pr: write
+  note: write
+
+concurrency:
+  enable: true
+  max: 100
+  exceed-action: QUEUE
+  preemption:
+    enable: true
+    events:
+      - mr_id
+
+env:
+  GITCODE_REPO: openGauss/openGauss-server
+  GITCODE_EVENT_NAME: ${{ atomgit.event_name }}
+  GITCODE_RUN_ID: ${{ atomgit.workflow_run_id }}
+  GITCODE_ACTIONS_RUN_ID: ${{ atomgit.run_id }}
+  GITCODE_PR_IID: ${{ (atomgit.event_name != 'pull_request_comment' && atomgit.event_name != 'pr_comment') && (atomgit.event.pull_request.number || atomgit.event.pull_request.iid || atomgit.event.merge_request.iid || atomgit.event.merge_request.number) || '' }}
+  GITCODE_TARGET_BRANCH: ${{ (atomgit.event_name != 'pull_request_comment' && atomgit.event_name != 'pr_comment') && (atomgit.base_ref || atomgit.event.pull_request.base.ref || atomgit.event.pull_request.target_branch || atomgit.event.merge_request.target_branch) || '' }}
+  PR_LABEL_TOKEN: ${{ secrets.PR_LABEL_TOKEN }}
+
+stages:
+  create_label:
+    name: CreateLabel
+    select: selected_by_default
+    jobs:
+      prepare:
+        name: Mark running
+        runs-on: [self-hosted, arch=x86]
+        container:
+          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-x86:script-1.0.0
+          options: --user root
+        timeout-minutes: 10
+        continue-on-error: false
+        outputs:
+          proceed: ${{ steps.publish.outputs.proceed }}
+          labeled: ${{ steps.publish.outputs.labeled }}
+          run_epoch: ${{ steps.state.outputs.run_epoch }}
+        steps:
+          - name: Createlabel
+            id: state
+            env:
+              LABEL_JOB_TAG: prepare
+            run: |
+              set -eu
+              umask 077
+              run_key="${GITCODE_RUN_ID:-}"
+              case "${run_key}" in
+                ''|*[!A-Za-z0-9._-]*) run_key="${ATOMGIT_RUN_ID:-}" ;;
+              esac
+              case "${run_key}" in
+                ''|*[!A-Za-z0-9._-]*) run_key="${ATOMGIT_RUN_NUMBER:-}" ;;
+              esac
+              case "${run_key}" in
+                ''|*[!A-Za-z0-9._-]*)
+                  echo "Cannot name the label state file." >&2
+                  exit 1
+                  ;;
+              esac
+              echo "---------------------- 打 running 标签，删除 success 和 failed 标签 ------------------"
+              sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-success
+              sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-failed
+              sh /usr/local/bin/gitcode_pr_labels.sh add ci-pipeline-running
+
+          - name: validDoc
+            id: validdoc
+            run: |
+              set -eu
+              echo "-----------------检测下是否全是docs以及gitcode--------------"
+              echo "----------- 打 success 标签，删除 running 标签和 failed 标签------"
+              echo "--- 退出 ------"
+
+  test_case:
+    name: running test case
+    select: selected_by_default
+    jobs:
+      llt_a_arm:
+        name: fastcheck_A_arm
+        timeout-minutes: 60
+        runs-on: [self-hosted, arch=arm]
+        container:
+          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-arm:llt-1.0.1
+          options: --user root
+        continue-on-error: true
+        outputs:
+          result: ${{ steps.run.outputs.result }}
+        steps:
+          - name: run_fastcheck
+            id: run
+            env:
+              ALLOW_DELETE: '1'
+              AUTO_APPROVE: '1'
+            run: |
+              PART_TYPE=A
+              if sh /usr/local/bin/entrypoint_llt.sh; then
+                echo "result=0" >> "$ATOMGIT_OUTPUT"
+              else
+                echo "result=1" >> "$ATOMGIT_OUTPUT"
+                exit 1
+              fi
+              echo "...script end..."
+
+      llt_b_arm:
+        name: fastcheck_B_arm
+        timeout-minutes: 60
+        runs-on: [self-hosted, arch=arm]
+        container:
+          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-arm:llt-1.0.0
+          options: --user root
+        continue-on-error: true
+        outputs:
+          result: ${{ steps.run.outputs.result }}
+        steps:
+          - name: run_fastcheck
+            id: run
+            env:
+              ALLOW_DELETE: '1'
+              AUTO_APPROVE: '1'
+            run: |
+              PART_TYPE=B
+              if sh /usr/local/bin/entrypoint_llt.sh; then
+                echo "result=0" >> "$ATOMGIT_OUTPUT"
+              else
+                echo "result=1" >> "$ATOMGIT_OUTPUT"
+                exit 1
+              fi
+
+              ## 测试失败
+              echo "result=1" >> "$ATOMGIT_OUTPUT"
+              exit 1
+              echo "...script end..."
+
+      llt_c_arm:
+        name: fastcheck_C_arm
+        timeout-minutes: 60
+        runs-on: [self-hosted, arch=arm]
+        container:
+          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-arm:llt-1.0.0
+          options: --user root
+        continue-on-error: true
+        outputs:
+          result: ${{ steps.run.outputs.result }}
+        steps:
+          - name: run_fastcheck
+            id: run
+            env:
+              ALLOW_DELETE: '1'
+              AUTO_APPROVE: '1'
+            run: |
+              PART_TYPE=C
+              if sh /usr/local/bin/entrypoint_llt.sh; then
+                echo "result=0" >> "$ATOMGIT_OUTPUT"
+              else
+                echo "result=1" >> "$ATOMGIT_OUTPUT"
+                exit 1
+              fi
+              echo "...script end..."
+
+  report_result:
+    name: ReportResult
+    jobs:
+      report:
+        name: report_result
+        if: always()
+        runs-on: [self-hosted, arch=x86]
+        container:
+          image: swr.cn-north-4.myhuaweicloud.com/opengauss-ci/opengauss-ci-x86:script-1.0.0
+          options: --user root
+        steps:
+          - name: judge
+            env:
+              A: ${{ jobs.llt_a_arm.outputs.result }}
+              B: ${{ jobs.llt_b_arm.outputs.result }}
+              C: ${{ jobs.llt_c_arm.outputs.result }}
+            run: |
+              set -eu
+              echo "A=$A B=$B C=$C"
+              if [ "$A" = "0" ] && [ "$B" = "0" ] && [ "$C" = "0" ]; then
+                sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-running
+                sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-failed
+                sh /usr/local/bin/gitcode_pr_labels.sh add ci-pipeline-success
+              else
+                sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-running
+                sh /usr/local/bin/gitcode_pr_labels.sh delete ci-pipeline-success
+                sh /usr/local/bin/gitcode_pr_labels.sh add ci-pipeline-failed
+                exit 1
+              fi
