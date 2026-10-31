@@ -1,217 +1,262 @@
-# -*- coding:utf-8 -*-
-# Copyright (c) 2021 Huawei Technologies Co.,Ltd.
 #
-# openGauss is licensed under Mulan PSL v2.
-# You can use this software according to the terms
-# and conditions of the Mulan PSL v2.
-# You may obtain a copy of Mulan PSL v2 at:
+# Copyright (c) Huawei Technologies CO., Ltd. 2022-2026. All rights reserved.
 #
-#          http://license.coscl.org.cn/MulanPSL2
-#
-# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS,
-# WITHOUT WARRANTIES OF ANY KIND,
-# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-# See the Mulan PSL v2 for more details.
-# ----------------------------------------------------------------------------
-
-"""
-CodeCheck代码检查，请求接口的脚本文件。
-传入参数： pull request链接
-输出参数： 执行完毕返回的libing平台任务路径的URL
-
-required 3rd:
-    requests
-"""
+import datetime
+import json
 import sys
 import time
-import datetime
 import argparse
-import os
-
 import requests
+import subprocess
 
-# 正式环境
-STATIC_KEY = ""
-API_DOMAIN = "https://majun.osinfra.cn"
-API_PREFIX = "/api/ci-backend/ci-portal/webhook/codecheck/v1"
+# 【关键】必须引入 APIG SDK 进行标准签名
+try:
+    from apig_sdk import signer
+except ImportError:
+    print("Error: apig_sdk not found. Please install it via 'pip install apig-sdk' or check your python environment.")
+    sys.exit(1)
 
-CODE_SUCCESS = "200"
-CODE_RUNNING = "100"
-CODE_TOKEN_EXPIRATION = "401"
+class CodeCheck(object):
 
+    def __init__(self, scan_ak, scan_sk, result_ak, result_sk, access_token,state_file,result_file, pr_id, repository_name,
+                 codecheck_ip='https://apig.openlibing.com/openlibing-codecheck',
+                 gitcode_api='https://api.gitcode.com/api/v5/repos',
+                 codecheck_prefix='/ci-portal/webhook/codecheck/v1'):
+        self.pr_url = None
+        self.task_id = None
+        self.uuid = None
+        self.result = None
+        self.report_url = None
+        self.action_type = None
 
-def print_logs(*args):
-    now = datetime.datetime.fromtimestamp(time.time())
-    print("%s: %s" % (now, ",".join(args)))
+        # 四把钥匙：扫描用一对，查询用一对
+        self.scan_ak = scan_ak
+        self.scan_sk = scan_sk
+        self.result_ak = result_ak
+        self.result_sk = result_sk
 
+        self.access_token = access_token
+        self.pr_id = pr_id
+        self.repository_name = repository_name
+        self.codecheck_ip = codecheck_ip
+        self.gitcode_api = gitcode_api
+        self.codecheck_prefix = codecheck_prefix
+        self.gitcode_domian = "https://gitcode.com/opengauss"
+        self.state_file = state_file
+        self.result_file = result_file
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="""
-    code check pull request parameters.""")
-    parser.add_argument('--pull-id', type=str, required=True, help='pull request id.')
-    parser.add_argument('--repo-url', type=str, required=True, help='target repo url.')
-    parser.add_argument('--seed', type=str, required=True, help='seed.')
-    return parser.parse_args()
+    def _get_pr_url(self):
+        self.pr_url = f"{self.gitcode_domian}/{self.repository_name}/merge_requests/{self.pr_id}"
+        print(f"pr_url: {self.pr_url}")
 
+    def _get_create_task(self):
+        """
+        使用 [Scan AK/SK] + [APIG 标准 SDK] 进行签名 (创建任务)
+        """
+        try:
+            # 注意：这里 codecheck_ip 可能已经包含了域名，拼接时需注意不要重复
+            # 如果 codecheck_ip 是 'https://www.openlibing.com'，prefix 是 '/ci-portal/...'
+            # 则 task_url = 'https://www.openlibing.com/ci-portal/...'
+            task_url = f'{self.codecheck_ip}{self.codecheck_prefix}/task'
 
-class CcRequest:
+            params = {
+                "pr_url": self.pr_url,
+                "projectName": "opengauss"
+            }
+            body = json.dumps(params)
 
-    def __init__(self):
-        self.token = ""
-        self.task_id = ""
-        self.uuid = ""
-        # self.pull_request_url = "https://gitee.com/opengauss/openGauss-OM/pulls/201"
-        self.pull_request_url = ""
-        self.pr_id = ""
-        self.repo_name = ""
-        self.cc_result_dir = ""
-        self.result_file = ""
-        self.state_file = ""
-        # 时间戳
-        self.seed = 0
-        self.state = ""
-        self.url = ""
+            method = 'POST'
+            headers = {"Content-Type": "application/json"}
 
-    def exit_with_msg(self, step, msg):
-        print_logs(step, msg)
-        with open(self.state_file, "w+") as fd:
-            fd.write("failed")
-            sys.exit(1)
+            # --- 核心：使用扫描密钥签名 ---
+            request = signer.HttpRequest(method, task_url, headers, body)
+            sig = signer.Signer()
+            sig.Key = self.scan_ak      # 使用扫描 AK
+            sig.Secret = self.scan_sk   # 使用扫描 SK
+            sig.Sign(request)
+            # ----------------------------------
 
-    def create_cc_result_dir(self):
-        if not os.path.exists(self.cc_result_dir):
-            os.makedirs(self.cc_result_dir)
+            print(f"[Create Task] URL: {task_url}")
 
-    def write_empty_value(self):
-        print(self.seed)
-        self.result_file = os.path.join(os.path.abspath(self.cc_result_dir), "cc_result_" + self.seed)
-        self.state_file = os.path.join(os.path.abspath(self.cc_result_dir), "cc_state_" + self.seed)
-        print(self.result_file)
-        print(self.state_file)
-        with open(self.result_file, "w+") as fd:
-            fd.write("")
-        with open(self.state_file, "w+") as fd:
-            fd.write("")
+            responsetemp = requests.request(
+                request.method,
+                request.scheme + "://" + request.host + request.uri,
+                headers=request.headers,
+                data=request.body
+            )
 
-    def write_result_to_file(self, res):
-        print_logs("state file is", self.state_file)
-        print_logs("result ile is", self.result_file)
-        if res.get('code') == CODE_SUCCESS:
-            if res.get('msg') == 'success':
-                with open(self.state_file, 'w+') as fd:
-                    fd.write("success")
+            print(f"[Create Task] 响应状态码: {responsetemp.status_code}")
+            # 调试时可开启下方打印
+            # print(f"[Create Task] 响应内容: {responsetemp.text}")
+
+            try:
+                response = responsetemp.json()
+            except ValueError as e:
+                print("无法解析 JSON 响应")
+                print(f'[code check {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}] 无法解析 JSON 响应 \n[{e}]')
+                return
+
+            # 注意：原代码中 code 是字符串 '200'
+            if str(response.get('code')) == '200':
+                self.uuid = response.get('uuid')
+                self.task_id = response.get('task_id')
+                print(f'[code check {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}] create task success (uuid: {self.uuid})')
             else:
-                with open(self.state_file, 'w+') as fd:
-                    fd.write("failed")
-            with open(self.result_file, 'w+') as fd:
-                fd.write(res.get('data', ''))
-        else:
-            with open(self.state_file, 'w+') as fd:
-                fd.write("failed")
+                print(f'[code check {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}] create task failed '
+                      f'\n[{response.get("msg")}]')
+        except Exception as e:
+            print(f'[code check {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}] create task error \n[{e}]')
 
-    def query_check_result(self):
-        print_logs('start query task......')
-        status_url = f'{API_DOMAIN}{API_PREFIX}/task/status'
-        print_logs('status_url:' + status_url)
-        body = {
-            "uuid": self.uuid,
-            "task_id": self.task_id,
-            "token": self.token
-        }
-        while True:
-            # 每10s查询一次
+    def _get_task_result(self):
+        """
+        使用 [Result AK/SK] + [APIG 标准 SDK] 进行签名 (查询结果)
+        """
+        expire_time = 0
+        while expire_time < 1800:
             time.sleep(10)
             try:
-                response = requests.post(status_url, json=body, timeout=10)
-                print_logs(f"response is {response.text}")
-                res = response.json()
-                if res.get('code') == CODE_SUCCESS:
-                    self.url = res.get('data')
-                    self.state = res.get('msg')
-                    print_logs('task success')
-                    # 将结果写入文件中
-                    self.write_result_to_file(res)
-                    print_logs("write_result_to_file end")
+                status_url = f'{self.codecheck_ip}{self.codecheck_prefix}/task/status'
+                params = {
+                    "uuid": self.uuid,
+                    "task_id": self.task_id
+                }
+                body = json.dumps(params)
+
+                method = 'POST'
+                headers = {"Content-Type": "application/json"}
+
+                # --- 核心：使用查询密钥签名 ---
+                request = signer.HttpRequest(method, status_url, headers, body)
+                sig = signer.Signer()
+                sig.Key = self.result_ak      # 使用查询 AK
+                sig.Secret = self.result_sk   # 使用查询 SK
+                sig.Sign(request)
+                # ----------------------------------
+
+                print(f"[Query Result] URL: {status_url}")
+
+                responsetemp = requests.request(
+                    request.method,
+                    request.scheme + "://" + request.host + request.uri,
+                    headers=request.headers,
+                    data=request.body
+                )
+
+                print(f"[Query Result] 响应状态码: {responsetemp.status_code}")
+                # 调试时可开启下方打印
+                # print(f"[Query Result] 响应内容: {responsetemp.text}")
+
+                response = responsetemp.json()
+                resp_code = str(response.get('code'))
+
+                if resp_code == '200':
+                    self.result = response.get('state')
+                    self.report_url = response.get('data')
+                    print(f'[code check {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}] task success')
                     break
-                elif res.get('code') == CODE_RUNNING:
-                    print_logs('task running')
+                elif resp_code == '100':
+                    print(f'[code check {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}] task running')
+                    expire_time = expire_time + 10
                     continue
-                elif res.get('code') == CODE_TOKEN_EXPIRATION:
-                    print_logs('token expired')
-                    self.get_token()
-                    continue
+                elif resp_code == '401':
+                    print(f'[code check {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}] no permission (401)')
+                    break
                 else:
-                    self.exit_with_msg('task failed', res.get('msg'))
-                    self.write_result_to_file(res)
+                    print(f'[code check {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}] task failed '
+                          f'\n[{response.get("msg")}]')
                     break
             except Exception as e:
-                print_logs(str(e))
-                continue
+                print(f'[code check {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}] task error \n[{e}]')
+                break
 
-    def create_task(self):
-        print_logs('start create task......')
-        try:
-            task_url = f'{API_DOMAIN}{API_PREFIX}/task'
-            print_logs(f'task_url:{task_url}')
-            body = {
-                "pr_url": self.pull_request_url,
-                "token": self.token
-            }
-            response = requests.post(task_url, json=body, timeout=10)
-            print_logs(f'create_task_result:{response.text}')
-            res = response.json()
-            if res.get('code') == CODE_SUCCESS:
-                self.uuid = res.get('uuid')
-                self.task_id = res.get('task_id')
-                print_logs('create task success')
-            else:
-                self.exit_with_msg('create task failed')
-        except Exception as e:
-            self.exit_with_msg('create task exception', e)
+    def run(self):
+        # 1. 获取 PR URL
+        self._get_pr_url()
+        if not self.pr_url:
+            print(f'[code check {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}] Error: pr_url is null')
+            sys.exit(-1)
 
-    def get_token(self):
-        print_logs('start get token......')
-        try:
-            token_url = f'{API_DOMAIN}{API_PREFIX}/token'
-            print(f'token_url: {API_DOMAIN}{API_PREFIX}/token')
-            body = {
-                "static_token": STATIC_KEY
-            }
-            response = requests.post(token_url, json=body, timeout=10)
-            res = response.json()
-            if res.get('code') == CODE_SUCCESS:
-                self.token = res.get('data')
-                print_logs('get token success')
-            else:
-                self.exit_with_msg('get token failed')
-        except Exception as e:
-            self.exit_with_msg('get token exception', e)
+        # 2. 创建门禁检查任务
+        self._get_create_task()
+        if not self.uuid or not self.task_id:
+            print(f'[code check {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}] create codecheck task error: missing uuid or task_id')
+            sys.exit(-1)
 
-    def generate_pr_url(self, prid, repo, seed):
-        repo_url = repo[:-4]
-        self.pull_request_url = "%s/pulls/%s" % (repo_url, prid)
-        print("pull_request_url:" + self.pull_request_url)
-        self.pr_id = self.pull_request_url.split("/")[-1]
-        print('pr_id:' + self.pr_id)
-        self.repo_name = self.pull_request_url.split("/")[-3]
-        print('repo_name:' + self.repo_name)
-        self.cc_result_dir = ("/tmp/cc_result/%s/%s" % (self.repo_name, self.pr_id))
-        print('cc_result_dir:' + self.cc_result_dir)
-        self.seed = seed
-        print('seed:' + self.seed)
+        # 3. 获取门禁检查任务结果
+        self._get_task_result()
 
-    def start(self):
-        print_logs("################# start to run Code Check #################")
-        params = parse_args()
-        self.generate_pr_url(params.pull_id, params.repo_url, params.seed)
-        self.create_cc_result_dir()
-        self.write_empty_value()
-        self.get_token()
-        self.create_task()
-        self.query_check_result()
+        if not self.report_url:
+            print(f'[code check {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}] Error: report_url is null')
+            sys.exit(-1)
 
+        
+        with open(self.result_file, "w", encoding="utf-8") as f:
+            f.write(self.report_url)
+            
+
+        # 检查结果不为 pass 表示提交代码存在 cleancode 问题
+        if self.result != "pass":
+            print(f'[code check {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}] Access control check failed')
+            with open(self.state_file, "w", encoding="utf-8") as f:
+                f.write("failed")
+            sys.exit(-1)
+        with open(self.state_file, "w", encoding="utf-8") as f:
+                f.write("success")
+        print(f'[code check {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}] code access control inspection passed')
+        sys.exit(0)
+
+
+def init_args():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--repository_name', required=True, type=str, help='仓库名称')
+    parser.add_argument('--pr_id', required=True, type=str, help='PR ID')
+
+    # 【关键修改】参数名与 SCA/Anti-Poison 脚本完全对齐，分为扫描密钥和结果密钥
+    parser.add_argument('--pr_scan_access_key', required=True, type=str, help='扫描 Access Key (APIG)')
+    parser.add_argument('--pr_scan_secret_key', required=True, type=str, help='扫描 Secret Key (APIG)')
+    parser.add_argument('--pr_result_access_key', required=True, type=str, help='结果查询 Access Key (APIG)')
+    parser.add_argument('--pr_result_secret_key', required=True, type=str, help='结果查询 Secret Key (APIG)')
+
+    parser.add_argument('--access_token', help='gitcode access token',required=False, type=str)
+    
+    parser.add_argument('--state_file', help='gitcode access token',required=True, type=str)
+    parser.add_argument('--result_file', help='gitcode access token',required=True, type=str)
+
+    # 注意：默认值处理。如果 codecheck_ip 传入的是完整域名+path，可能需要调整拼接逻辑
+    # 这里保持原代码逻辑：codecheck_ip 默认为域名，prefix 默认为路径
+    parser.add_argument('--codecheck_ip', default='https://apig.openlibing.com/openlibing-codecheck', type=str, help='APIG Gateway Domain')
+    parser.add_argument('--gitcode_api', default='https://api.gitcode.com/api/v5/repos', type=str)
+    parser.add_argument('--codecheck_prefix', default='/ci-portal/webhook/codecheck/v1', type=str)
+
+    return parser.parse_args()
+
+"""
+--appId-task="${CREATE_TASK_AK}" \\
+                                --secretKey-task="${CREATE_TASK_SK}" \\
+                                --appId-status="${GET_RESULT_AK}" \\
+                                --secretKey-status="${GET_RESULT_SK}"
+                                
+python3 codecheck.py --repository_name ${repo} --pr_id ${pr_id}  --pr_scan_access_key ${CREATE_TASK_AK} --pr_scan_secret_key ${CREATE_TASK_SK}  --pr_result_access_key ${GET_RESULT_AK} --pr_result_secret_key  ${GET_RESULT_SK} --state_file ${state_file} --result_file ${result_file}
+ 
+"""
 
 if __name__ == '__main__':
-    req = CcRequest()
-    req.start()
+    args = init_args()
+
+    codecheck = CodeCheck(
+        scan_ak=args.pr_scan_access_key,
+        scan_sk=args.pr_scan_secret_key,
+        result_ak=args.pr_result_access_key,
+        result_sk=args.pr_result_secret_key,
+        access_token=args.access_token,
+        state_file=args.state_file,
+        result_file=args.result_file,
+        pr_id=args.pr_id,
+        repository_name=args.repository_name,
+        codecheck_ip=args.codecheck_ip,
+        gitcode_api=args.gitcode_api,
+        codecheck_prefix=args.codecheck_prefix
+    )
+    codecheck.run()
+
